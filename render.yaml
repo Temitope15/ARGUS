@@ -1,0 +1,22 @@
+services:
+  # Unified ARGUS Backend (Phase 1 + 2 + Telegram)
+  - type: web
+    name: argus-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && cd contagion-shield && npm install && cd ..
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AVE_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: DB_PATH
+        value: ./data/argus.db
+      - key: LOG_LEVEL
+        value: info

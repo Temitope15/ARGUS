@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+build/
+
+# Environment Variables
+.env
+.env.local
+.env.development
+.env.production
+!.env.example
+
+# Databases
+data/*.db
+data/*.db-shm
+data/*.db-wal
+*.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+server.log
+dashboard.log
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE Files
+.vscode/
+.idea/

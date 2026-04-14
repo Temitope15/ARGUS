@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Failsafe: Ensure dark background even if Tailwind processing is delayed */
+html, body {
+  background-color: #05080C !important;
+  color: #EDF2F7;
+}
+
+:root {
+  --void: #05080C;
+  --surface: #0A0E14;
+  --elevated: #111720;
+  --border: #1C2333;
+  --argus: #FF6B2B;
+  --argus-dim: #C2440A;
+  --argus-glow: rgba(255, 107, 43, 0.15);
+}
+
+@layer base {
+  body {
+    @apply bg-void text-primary selection:bg-argus/30 selection:text-white;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-surface/70 backdrop-blur-xl border border-white/5;
+  }
+  
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-[length:200%_200%] animate-gradient;
+    background-image: linear-gradient(135deg, #FF6B2B 0%, #FFB347 50%, #FF6B2B 100%);
+  }
+
+  .reveal-on-scroll {
+    @apply opacity-0 translate-y-6 transition-all duration-700 ease-out;
+  }
+
+  .reveal-on-scroll.revealed {
+    @apply opacity-100 translate-y-0;
+  }
+}
+
+/* Custom Utilities */
+.bg-dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.radial-aura {
+  background: radial-gradient(circle at center, rgba(255, 107, 43, 0.12) 0%, transparent 60%);
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-void;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-border rounded-full hover:bg-muted/50 transition-colors;
+}
+
+/* Recharts Customization */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: rgba(255, 255, 255, 0.05);
+}

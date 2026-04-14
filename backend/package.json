@@ -1,0 +1,31 @@
+{
+  "name": "argus-defi-shield",
+  "version": "1.0.0",
+  "description": "ARGUS — DeFi Contagion Shield: Real-time risk detection and protection for DeFi assets",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "dev:phase1": "cd contagion-shield && node src/index.js",
+    "dev:phase2": "node src/engine/index.js",
+    "test": "node --test tests/**/*.test.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "better-sqlite3": "^11.5.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0",
+    "express": "^4.19.0",
+    "node-telegram-bot-api": "^0.66.0",
+    "pino": "^9.0.0",
+    "pino-pretty": "^11.0.0",
+    "socket.io": "^4.7.5",
+    "uuid": "^10.0.0",
+    "ws": "^8.16.0",
+    "p-limit": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

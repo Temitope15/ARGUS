@@ -1,0 +1,43 @@
+
+> dev:all
+> npm run dev:backend & npm run dev:frontend
+
+
+> dev:backend
+> npm run dev --workspace=backend
+
+
+> dev:frontend
+> npm run dev --workspace=frontend
+
+
+> argus-defi-shield@1.0.0 dev
+> node --watch server.js
+
+
+> argus-dashboard@1.0.0 dev
+> next dev
+
+file:///home/sunmade/Documents/client_projects/argus/backend/contagion-shield/src/config/index.js:40
+    throw new Error(`CRITICAL: Missing required environment variable: ${varName}`);
+          ^
+
+Error: CRITICAL: Missing required environment variable: AVE_API_KEY
+    at file:///home/sunmade/Documents/client_projects/argus/backend/contagion-shield/src/config/index.js:40:11
+    at Array.forEach (<anonymous>)
+    at file:///home/sunmade/Documents/client_projects/argus/backend/contagion-shield/src/config/index.js:38:14
+    at ModuleJob.run (node:internal/modules/esm/module_job:430:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:661:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.14.1
+Failed running 'server.js'. Waiting for file changes before restarting...
+   ▲ Next.js 14.1.0
+   - Local:        http://localhost:3000
+   - Environments: .env.local
+
+npm error code ENOWORKSPACES
+npm error This command does not support workspaces.
+npm error A complete log of this run can be found in: /home/sunmade/.npm/_logs/2026-04-14T20_29_00_572Z-debug-0.log
+ ✓ Ready in 30.4s
