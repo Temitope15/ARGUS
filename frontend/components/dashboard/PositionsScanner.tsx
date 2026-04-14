@@ -87,7 +87,7 @@ export const PositionsScanner = () => {
             </div>
             <div className={`bg-surface border rounded-xl p-5 ${data.atRiskValueUsd > 0 ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.08)]' : 'border-border'}`}>
               <div className="flex justify-between items-start">
-                <span className="text-muted text-xs font-mono uppercase tracking-widest">Value at Risk (Score >45)</span>
+                <span className="text-muted text-xs font-mono uppercase tracking-widest">Value at Risk (Score &gt;45)</span>
                 {data.atRiskValueUsd > 0 ? <AlertCircle className="text-red-500" size={20} /> : <Shield className="text-emerald-500" size={20} />}
               </div>
               <div className={`text-3xl font-bold mt-2 ${data.atRiskValueUsd > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
