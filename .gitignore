@@ -33,3 +33,6 @@ Thumbs.db
 # IDE Files
 .vscode/
 .idea/
+
+backend/data/*.db*
+logs.txt

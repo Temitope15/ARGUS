@@ -85,7 +85,7 @@ export const INITIAL_MOCK_SCORES: ProtocolScore[] = [
     computedAt: Date.now(),
   },
   {
-    protocolId: 'pancake-bsc',
+    protocolId: 'pancakeswap-v3-bsc',
     protocolName: 'PancakeSwap',
     chain: 'bsc',
     score: 41,
