@@ -6628,3 +6628,188 @@ Killed
     [39m
     env: "development"
     module: "database"
+[2026-04-14 22:04:10.525 +0100] [33mWARN[39m: [36mTelegram polling error[39m
+    env: "development"
+    module: "alerts/telegram-bot"
+    error: "ETELEGRAM: 409 Conflict: terminated by other getUpdates request; make sure that only one bot instance is running"
+[2026-04-14 22:04:17.618 +0100] [34mDEBUG[39m: [36mSwap detected[39m
+    env: "development"
+    module: "swap-handler"
+    direction: "SELL"
+    amount: "$1.88"
+    pair: "0x4f3126d5"
+    from: "BUSD"
+    to: "USDT"
+[2026-04-14 22:04:17.618 +0100] [34mDEBUG[39m: [36m
+      INSERT INTO swap_events (
+        id, timestamp, chain, pair_address, wallet_address,
+        from_token, to_token, from_amount_usd, to_amount_usd,
+        is_sell, pair_liquidity_usd, tx_hash, block_number, raw_data
+      ) VALUES ('7d5daa54-8b6b-4bbd-a6f5-4e54626c'/*+4 bytes*/, 1776200656000.0, 'bsc', '0x4f3126d5de26413abdcf6948943fb9'/*+10 bytes*/, '0xeb52e9efc209801c2a031d46fabf8a'/*+10 bytes*/, 'BUSD', 'USDT', 1.877437548, 1.879064607, 1.0, 1459405.26598, '0xad8952a617d1ba1d14b730600ddf28'/*+34 bytes*/, 92555213.0, '{"amm":"pancakev3","amount_eth":'/*+1003 bytes*/)
+    [39m
+    env: "development"
+    module: "database"
+[2026-04-14 22:04:17.678 +0100] [34mDEBUG[39m: [36mSwap detected[39m
+    env: "development"
+    module: "swap-handler"
+    direction: "SELL"
+    amount: "$0.19"
+    pair: "0x4f3126d5"
+    from: "BUSD"
+    to: "USDT"
+[2026-04-14 22:04:17.678 +0100] [34mDEBUG[39m: [36m
+      INSERT INTO swap_events (
+        id, timestamp, chain, pair_address, wallet_address,
+        from_token, to_token, from_amount_usd, to_amount_usd,
+        is_sell, pair_liquidity_usd, tx_hash, block_number, raw_data
+      ) VALUES ('da9bd28e-8dfb-439a-a965-6d5aebfc'/*+4 bytes*/, 1776200656000.0, 'bsc', '0x4f3126d5de26413abdcf6948943fb9'/*+10 bytes*/, '0xb5cb0553d09c315cd7a8529dc56fa7'/*+10 bytes*/, 'BUSD', 'USDT', 0.186089304, 0.1862500374, 1.0, 1459405.26598, '0x0f08a5c8ed054f8ed4b830c286c7d1'/*+34 bytes*/, 92555214.0, '{"amm":"pancakev3","amount_eth":'/*+1005 bytes*/)
+    [39m
+    env: "development"
+    module: "database"
+[2026-04-14 22:04:18.544 +0100] [33mWARN[39m: [36mTelegram polling error[39m
+    env: "development"
+    module: "alerts/telegram-bot"
+    error: "ETELEGRAM: 409 Conflict: terminated by other getUpdates request; make sure that only one bot instance is running"
+[2026-04-14 22:04:20.986 +0100] [34mDEBUG[39m: [36mPolling token prices and TVL...[39m
+    env: "development"
+    module: "tvl-poller"
+    tokenIds: [
+      "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48-eth",
+      "0xdac17f958d2ee523a2206206994597c13d831ec7-eth",
+      "0x6b175474e89094c44da98b954eedeac495271d0f-eth",
+      "0x55d398326f99059ff775485246999027b3197955-bsc",
+      "0xe9e7cea3dedca5984780bafc599bd69add087d56-bsc"
+    ]
+[2026-04-14 22:04:20.986 +0100] [34mDEBUG[39m: [36mOutgoing request[39m
+    env: "development"
+    module: "ave-client"
+    method: "POST"
+    url: "/v2/tokens/price"
+    body: "{\"token_ids\":[\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48-eth\",\"0xdac17f958d2ee523a2206206994597c13d"
+[2026-04-14 22:04:23.052 +0100] [34mDEBUG[39m: [36mResponse received[39m
+    env: "development"
+    module: "ave-client"
+    status: 200
+    url: "/v2/tokens/price"
+[2026-04-14 22:04:23.053 +0100] [34mDEBUG[39m: [36m
+      INSERT INTO price_snapshots (
+        id, timestamp, chain, token_address, symbol, 
+        price_usd, tvl, price_change_1h, price_change_24h, 
+        volume_u_24h, source
+      ) VALUES ('5cd0e6d8-0ca0-45d3-9bc3-4bc25e7a'/*+4 bytes*/, 1776200663053.0, 'bsc', '0x55d398326f99059ff7754852469990'/*+10 bytes*/, '', 1.00086, 11441435.63973, -0.01, 0.13, 5468212.41349, 'rest_poll')
+    [39m
+    env: "development"
+    module: "database"
+[2026-04-14 22:04:23.054 +0100] [34mDEBUG[39m: [36mSaved TVL snapshot[39m
+    env: "development"
+    module: "tvl-poller"
+    symbol: "bsc"
+    price: "$1.00086"
+    tvl: "$11,441,435.64"
+[2026-04-14 22:04:23.054 +0100] [34mDEBUG[39m: [36m
+      INSERT INTO price_snapshots (
+        id, timestamp, chain, token_address, symbol, 
+        price_usd, tvl, price_change_1h, price_change_24h, 
+        volume_u_24h, source
+      ) VALUES ('44ef5b78-497f-4187-a871-c4446970'/*+4 bytes*/, 1776200663054.0, 'eth', '0x6b175474e89094c44da98b954eedea'/*+10 bytes*/, '', 0.99973, 15114529.99454, -0.03, 0.01, 17977741.62429, 'rest_poll')
+    [39m
+    env: "development"
+    module: "database"
+[2026-04-14 22:04:23.054 +0100] [34mDEBUG[39m: [36mSaved TVL snapshot[39m
+    env: "development"
+    module: "tvl-poller"
+    symbol: "eth"
+    price: "$0.99973"
+    tvl: "$15,114,529.995"
+[2026-04-14 22:04:23.055 +0100] [34mDEBUG[39m: [36m
+      INSERT INTO price_snapshots (
+        id, timestamp, chain, token_address, symbol, 
+        price_usd, tvl, price_change_1h, price_change_24h, 
+        volume_u_24h, source
+      ) VALUES ('4181cda5-b532-4640-8e6e-f08f2f86'/*+4 bytes*/, 1776200663054.0, 'eth', '0xa0b86991c6218b36c1d19d4a2e9eb0'/*+10 bytes*/, '', 0.99934, 33807064.11492, -0.02, 0.0, 251675869.376, 'rest_poll')
+    [39m
+    env: "development"
+    module: "database"
+[2026-04-14 22:04:23.055 +0100] [34mDEBUG[39m: [36mSaved TVL snapshot[39m
+    env: "development"
+    module: "tvl-poller"
+    symbol: "eth"
+    price: "$0.99934"
+    tvl: "$33,807,064.115"
+[2026-04-14 22:04:23.056 +0100] [34mDEBUG[39m: [36m
+      INSERT INTO price_snapshots (
+        id, timestamp, chain, token_address, symbol, 
+        price_usd, tvl, price_change_1h, price_change_24h, 
+        volume_u_24h, source
+      ) VALUES ('1e18cbdf-1f65-45b9-b07b-179b3661'/*+4 bytes*/, 1776200663055.0, 'eth', '0xdac17f958d2ee523a2206206994597'/*+10 bytes*/, '', 1.00147, 12215.02292, 0.0, 0.0, 0.99915, 'rest_poll')
+    [39m
+    env: "development"
+    module: "database"
+[2026-04-14 22:04:23.056 +0100] [34mDEBUG[39m: [36mSaved TVL snapshot[39m
+    env: "development"
+    module: "tvl-poller"
+    symbol: "eth"
+    price: "$1.00147"
+    tvl: "$12,215.023"
+[2026-04-14 22:04:23.057 +0100] [34mDEBUG[39m: [36m
+      INSERT INTO price_snapshots (
+        id, timestamp, chain, token_address, symbol, 
+        price_usd, tvl, price_change_1h, price_change_24h, 
+        volume_u_24h, source
+      ) VALUES ('d604a15b-a7f2-4fac-961f-9dc78530'/*+4 bytes*/, 1776200663057.0, 'bsc', '0xe9e7cea3dedca5984780bafc599bd6'/*+10 bytes*/, '', 0.99789, 178421.87356, -0.62, -0.33, 403516.46268, 'rest_poll')
+    [39m
+    env: "development"
+    module: "database"
+[2026-04-14 22:04:23.060 +0100] [34mDEBUG[39m: [36mSaved TVL snapshot[39m
+    env: "development"
+    module: "tvl-poller"
+    symbol: "bsc"
+    price: "$0.99789"
+    tvl: "$178,421.874"
+[2026-04-14 22:04:23.060 +0100] [32mINFO[39m: [36mTVL poll complete[39m
+    env: "development"
+    module: "tvl-poller"
+    tokens: 5
+    totalTvl: "$60,553,666.646"
+[2026-04-14 22:04:26.429 +0100] [33mWARN[39m: [36mTelegram polling error[39m
+    env: "development"
+    module: "alerts/telegram-bot"
+    error: "ETELEGRAM: 409 Conflict: terminated by other getUpdates request; make sure that only one bot instance is running"
+[2026-04-14 22:04:28.787 +0100] [34mDEBUG[39m: [36mSwap detected[39m
+    env: "development"
+    module: "swap-handler"
+    direction: "SELL"
+    amount: "$1022.44"
+    pair: "0x60594a40"
+    from: "DAI"
+    to: "WETH"
+[2026-04-14 22:04:28.787 +0100] [34mDEBUG[39m: [36m
+      INSERT INTO swap_events (
+        id, timestamp, chain, pair_address, wallet_address,
+        from_token, to_token, from_amount_usd, to_amount_usd,
+        is_sell, pair_liquidity_usd, tx_hash, block_number, raw_data
+      ) VALUES ('16a3207d-c9c9-49db-895e-aa2b3145'/*+4 bytes*/, 1776200663000.0, 'eth', '0x60594a405d53811d3bc4766596efd8'/*+10 bytes*/, '0xbe66ec1b912af7f15fe45fee74e4f7'/*+10 bytes*/, 'DAI', 'WETH', 1022.428532712, 1022.435787072, 1.0, 2420220.7522429, '0xc30689022cdc27c25343fcba37d6b9'/*+34 bytes*/, 24880607.0, '{"amm":"uniswapv3","amount_eth":'/*+1001 bytes*/)
+    [39m
+    env: "development"
+    module: "database"
+[2026-04-14 22:04:34.537 +0100] [33mWARN[39m: [36mTelegram polling error[39m
+    env: "development"
+    module: "alerts/telegram-bot"
+    error: "ETELEGRAM: 409 Conflict: terminated by other getUpdates request; make sure that only one bot instance is running"
+[2026-04-14 22:04:36.974 +0100] [34mDEBUG[39m: [36mSwap detected[39m
+    env: "development"
+    module: "swap-handler"
+    direction: "BUY"
+    amount: "$37.54"
+    pair: "0x4f3126d5"
+    from: "USDT"
+    to: "BUSD"
+[2026-04-14 22:04:36.974 +0100] [34mDEBUG[39m: [36m
+      INSERT INTO swap_events (
+        id, timestamp, chain, pair_address, wallet_address,
+        from_token, to_token, from_amount_usd, to_amount_usd,
+        is_sell, pair_liquidity_usd, tx_hash, block_number, raw_data
+      ) VALUES ('ef3f3e2a-0e75-4906-9ff2-41298a56'/*+4 bytes*/, 1776200673000.0, 'bsc', '0x4f3126d5de26413abdcf6948943fb9'/*+10 bytes*/, '0x13b7976596ab04619909e94f05fe21'/*+10 bytes*/, 'USDT', 'BUSD', 37.5413863482, 37.501223298, 0.0, 1459786.5605365, '0x5abe31b41357311128d42bbb52661b'/*+34 bytes*/, 92555252.0, '{"amm":"pancakev3","amount_eth":'/*+1006 bytes*/)
+    [39m
+    env: "development"
+    module: "database"
