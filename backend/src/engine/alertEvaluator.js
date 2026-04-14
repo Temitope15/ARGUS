@@ -3,6 +3,7 @@
  */
 import db from '../database/phase2Db.js';
 import telegramBot from '../alerts/telegramBot.js';
+import tradeExecutor from './tradeExecutor.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('engine/alert-evaluator');
@@ -59,8 +60,19 @@ export async function evaluateAlerts(protocol, newScoreObj) {
     };
 
     if (action === 'SEND_NEW') {
+      let tradeResult = null;
+      if (alertLevel === 'RED') {
+        const mode = process.env.AUTO_PROTECT_MODE || 'FULL_EXIT'; // Configurable user setting
+        const mockUserWallet = process.env.PROTECTED_WALLET || '0xDemoWalletAddress00000000000000';
+        tradeResult = await tradeExecutor.executeProtection(protocol, mode, mockUserWallet);
+        if (tradeResult && tradeResult.success) {
+           messageData.tradeAction = `Auto-Protection (${mode}) Engaged. Sim Tx: ${tradeResult.receipt.transactionHash.substring(0,10)}...`;
+        }
+      }
+
       const messageId = await telegramBot.sendAlert(messageData);
-      _recordAlert(protocolId, alertLevel, score, 'First alert or escalation', messageId);
+      const logMessage = tradeResult ? `RED alert with Trade: ${tradeResult.mode}` : 'First alert or escalation';
+      _recordAlert(protocolId, alertLevel, score, logMessage, messageId);
     } else if (action === 'EDIT_EXISTING' && lastAlert?.telegram_message_id) {
       await telegramBot.editAlert(lastAlert.telegram_message_id, messageData);
       _recordAlert(protocolId, alertLevel, score, 'Score update (Edit)', lastAlert.telegram_message_id);

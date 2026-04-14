@@ -181,6 +181,75 @@ async function bootstrap() {
       }
     });
 
+    // Phase D: Wallet Exposure (Dashboard "My Positions")
+    app.get('/api/wallet/:address/exposure', async (req, res) => {
+      const address = req.params.address;
+      const chain = req.query.chain || 'eth'; // Default to eth
+
+      try {
+        // 1. Fetch real token holdings for the wallet via AVE API
+        const { default: aveRestClient } = await import('./src/api/aveRestClient.js');
+        const walletResult = await aveRestClient.getWalletTokens(address, chain);
+        
+        if (walletResult.error || !walletResult.data) {
+          logger.warn({ address, error: walletResult.error }, 'Failed to fetch wallet tokens');
+          return res.status(500).json({ error: 'Failed to fetch wallet tokens' });
+        }
+
+        const holdings = walletResult.data;
+        
+        // 2. Cross-reference with our in-memory latestScores
+        // walletResult.data typically gives us { token, balance, price, value, ... }
+        // We will match the token address to our MONITORED_PROTOCOLS to see if they hold it.
+
+        const exposure = holdings.map(tokenAsset => {
+           // Find matching protocol in our list
+           const matchingProtocol = MONITORED_PROTOCOLS.find(p => p.chain === chain && p.tokenId.startsWith(tokenAsset.token.toLowerCase()));
+           let riskData = null;
+
+           if (matchingProtocol) {
+             const scoreData = latestScores.find(s => s.protocolId === matchingProtocol.id);
+             if (scoreData) {
+               riskData = {
+                 score: scoreData.score,
+                 alertLevel: scoreData.alertLevel,
+                 protocolId: scoreData.protocolId,
+                 protocolName: scoreData.protocolName
+               };
+             }
+           }
+
+           return {
+             tokenAddress: tokenAsset.token,
+             symbol: tokenAsset.symbol || 'UNKNOWN',
+             balance: tokenAsset.balance || 0,
+             valueUsd: tokenAsset.value || 0,
+             isMonitored: !!matchingProtocol,
+             risk: riskData
+           };
+        });
+
+        // Sort by value DESC
+        exposure.sort((a, b) => b.valueUsd - a.valueUsd);
+        
+        // Compute Summary
+        const totalValue = exposure.reduce((sum, item) => sum + item.valueUsd, 0);
+        const atRiskValue = exposure.filter(item => item.risk && item.risk.score >= 46).reduce((sum, item) => sum + item.valueUsd, 0);
+
+        res.json({
+          address,
+          chain,
+          totalValueUsd: totalValue,
+          atRiskValueUsd: atRiskValue,
+          holdings: exposure,
+          timestamp: Date.now()
+        });
+      } catch (err) {
+         logger.error({ error: err.message, stack: err.stack }, 'Exposure endpoint failed');
+         res.status(500).json({ error: 'Internal server error processing wallet exposure.' });
+      }
+    });
+
     // Override socketServer.broadcastScores for unified mode
     const broadcastScores = (scores) => {
       latestScores = scores.map(s => ({ ...s, computedAt: Date.now() }));

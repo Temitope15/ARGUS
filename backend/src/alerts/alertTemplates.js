@@ -7,10 +7,16 @@ export const getTemplate = (level, data) => {
   
   const header = _getHeader(level, protocolName, chain, score, contagionMultiplierApplied);
   const body = _formatSignalBreakdown(signalResults || {});
+  
+  let tradeInfo = '';
+  if (data.tradeAction) {
+    tradeInfo = `\n🛡️ *AUTO-PROTECTION:*\n_${data.tradeAction}_\n`;
+  }
+
   const footer = _getFooter(level);
   const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
-  return `${header}\n\n${body}\n\n${footer}\n\n_${timestamp} UTC — ARGUS Shield_`;
+  return `${header}\n\n${body}\n${tradeInfo}\n${footer}\n\n_${timestamp} UTC — ARGUS Shield_`;
 };
 
 function _getHeader(level, name, chain, score, contagion) {
