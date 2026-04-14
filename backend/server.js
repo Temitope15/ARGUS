@@ -143,6 +143,39 @@ async function bootstrap() {
       });
     });
 
+    // Wire live events to Socket.io for the Dashboard's LiveFeed
+    wsManager.on('swap_event', (result) => {
+      if (!result || !result.tx) return;
+      const tx = result.tx;
+      const isRed = parseInt(tx.amount_usd || '0') > 10000;
+      io.emit('signal_event', {
+        id: tx.tx_hash || Math.random().toString(),
+        type: 'swap',
+        description: `Live Swap: ${tx.from_token} \u2192 ${tx.to_token} on ${result.address?.substring(0,6)}`,
+        protocolId: result.chain || 'eth',
+        amountUsd: parseInt(tx.amount_usd || '0'),
+        severity: isRed ? 'high' : 'low',
+        timestamp: Date.now()
+      });
+    });
+
+    wsManager.on('liq_event', (result) => {
+      if (!result || !result.tx) return;
+      const tx = result.tx;
+      if (tx.action === 'removeLiquidity') {
+        const isRed = parseInt(tx.amount_usd || '0') > 20000;
+        io.emit('signal_event', {
+          id: tx.tx_hash || Math.random().toString(),
+          type: 'lp_removal',
+          description: `Liquidity Removed: ${tx.token1_symbol || 'Tokens'} from pool`,
+          protocolId: result.chain || 'eth',
+          amountUsd: parseInt(tx.amount_usd || '0'),
+          severity: isRed ? 'high' : 'medium',
+          timestamp: Date.now()
+        });
+      }
+    });
+
     // Phase 2 REST API
     app.get('/api/scores/latest', (req, res) => {
       res.json({ timestamp: Date.now(), scores: latestScores });

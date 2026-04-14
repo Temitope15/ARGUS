@@ -21,7 +21,7 @@ export interface ProtocolScore {
 
 export interface SignalEvent {
   id: string;
-  type: 'lp_removal' | 'smart_money_exit' | 'depeg_detected' | 'holder_exit';
+  type: 'lp_removal' | 'smart_money_exit' | 'depeg_detected' | 'holder_exit' | 'swap';
   description: string;
   protocolId: string;
   amountUsd?: number;

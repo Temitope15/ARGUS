@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ArrowDownLeft, Brain, AlertTriangle, TrendingDown } from 'lucide-react';
+import { ArrowDownLeft, Brain, AlertTriangle, TrendingDown, ArrowRightLeft } from 'lucide-react';
 import { SignalEvent } from '@/lib/mockData';
 
 interface LiveFeedProps {
@@ -13,6 +13,7 @@ const ICON_MAP = {
   smart_money_exit: Brain,
   depeg_detected: AlertTriangle,
   holder_exit: TrendingDown,
+  swap: ArrowRightLeft,
 };
 
 const SEVERITY_COLOR = {
@@ -26,6 +27,7 @@ const ICON_COLOR = {
   smart_money_exit: 'text-red-400',
   depeg_detected: 'text-amber-400',
   holder_exit: 'text-red-500',
+  swap: 'text-argus',
 };
 
 export const LiveFeed = ({ events }: LiveFeedProps) => {
