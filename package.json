@@ -12,5 +12,10 @@
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:all": "npm run dev:backend & npm run dev:frontend",
     "install:all": "npm install"
+  },
+  "dependencies": {
+    "jest": "^30.3.0",
+    "node-telegram-bot-api": "^0.67.0",
+    "winston": "^3.19.0"
   }
 }
