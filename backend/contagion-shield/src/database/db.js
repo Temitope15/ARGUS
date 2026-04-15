@@ -1,7 +1,7 @@
 /**
- * Database module - Manages SQLite connection and provides schema migration helpers.
+ * Database module - Manages Turso/LibSQL connection and provides schema migration helpers.
  */
-import Database from 'better-sqlite3';
+import { createClient } from '@libsql/client';
 import path from 'path';
 import fs from 'fs';
 import config from '../config/index.js';
@@ -9,72 +9,96 @@ import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('database');
 
-// Ensure data directory exists
-const dbDir = path.dirname(config.dbPath);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
+// Configure client for either Turso Cloud or local file fallback
+let dbConfig;
+if (config.tursoUrl && config.tursoAuthToken) {
+  logger.info('Using Turso Cloud Database');
+  dbConfig = {
+    url: config.tursoUrl,
+    authToken: config.tursoAuthToken
+  };
+} else {
+  logger.warn('Turso credentials missing. Falling back to local file.');
+  if (!config.dbPath) {
+    logger.error('DB_PATH is missing! Please set it in your .env file.');
+    process.exit(1);
+  }
+  
+  // Ensure data directory exists
+  const dbDir = path.dirname(config.dbPath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+  
+  dbConfig = {
+    url: `file:${config.dbPath}`
+  };
+} // Initialize libsql connection
+const db = createClient(dbConfig);
 
-const db = new Database(config.dbPath, {
-  verbose: (msg) => logger.debug(msg)
-});
 
-// Enable WAL mode for better concurrency
-db.pragma('journal_mode = WAL');
-
-/**
- * Executes migrations.
- */
 /**
  * Executes database migrations to set up the schema.
  * @returns {Promise<void>}
  */
 export const initDb = async () => {
-  logger.info('Initializing database...');
+  logger.info('Initializing database (LibSQL)...');
   
-  // Create migrations table if not exists
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS migrations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      executed_at INTEGER DEFAULT (unixepoch('now') * 1000)
-    )
-  `);
-  
-  // Check if initial migration was executed
-  const initialMigration = db.prepare('SELECT id FROM migrations WHERE name = ?').get('001_initial');
-  
-  if (!initialMigration) {
-    logger.info('Running migration 001_initial...');
-    // We import the migration dynamically to avoid circular dependencies if any
-    const { up } = await import('./migrations/001_initial.js');
-    db.transaction(() => {
-      up(db);
-      db.prepare('INSERT INTO migrations (name) VALUES (?)').run('001_initial');
-    })();
-    logger.info('Migration 001_initial complete.');
-  } else {
-    logger.debug('Database already up to date.');
+  try {
+    // Create migrations table if not exists
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS migrations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        executed_at INTEGER DEFAULT (unixepoch('now') * 1000)
+      )
+    `);
+    
+    // Check if initial migration was executed
+    const result = await db.execute({
+      sql: 'SELECT id FROM migrations WHERE name = ?',
+      args: ['001_initial']
+    });
+    const initialMigration = result.rows[0];
+    
+    if (!initialMigration) {
+      logger.info('Running migration 001_initial...');
+      const { up } = await import('./migrations/001_initial.js');
+      
+      // We can't really do DDL in a standard SQL transaction easily in some SQLite environments
+      // but LibSQL supports it via batch or transaction. Let's just run them sequentially.
+      await up(db);
+      
+      await db.execute({
+        sql: 'INSERT INTO migrations (name) VALUES (?)',
+        args: ['001_initial']
+      });
+      
+      logger.info('Migration 001_initial complete.');
+    } else {
+      logger.debug('Database already up to date.');
+    }
+  } catch (error) {
+    logger.error({ error: error.message }, 'Failed to initialize database');
+    throw error;
   }
 };
 
 /**
  * Resets the database (for development use).
  */
-/**
- * Resets the database by closing the connection and deleting the database files.
- * @returns {void}
- */
-export const resetDb = () => {
+export const resetDb = async () => {
   logger.warn('Resetting database...');
-  db.close();
-  if (fs.existsSync(config.dbPath)) {
-    fs.unlinkSync(config.dbPath);
-    // Also remove WAL files if they exist
-    if (fs.existsSync(`${config.dbPath}-wal`)) fs.unlinkSync(`${config.dbPath}-wal`);
-    if (fs.existsSync(`${config.dbPath}-shm`)) fs.unlinkSync(`${config.dbPath}-shm`);
+  try {
+    const tables = ['liquidity_events', 'swap_events', 'price_snapshots', 'pair_snapshots', 'contract_risks', 'migrations'];
+    for (const table of tables) {
+      await db.execute(`DROP TABLE IF EXISTS ${table}`);
+    }
+    logger.info('Database reset complete.');
+  } catch (error) {
+    logger.error({ error: error.message }, 'Failed to reset database');
+    throw error;
   }
-  logger.info('Database reset complete.');
 };
 
 export default db;

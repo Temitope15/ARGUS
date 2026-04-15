@@ -2,6 +2,7 @@
  * ARGUS — Unified Backend Entry Point for Production (Render)
  * 
  * Runs Phase 1 (Data Pipeline) and Phase 2 (Risk Engine) in a single process.
+ * Phase 3 adds: Paper Trading, Telegram Login, P&L Updates, Whale Detection.
  * Phase 1's Express + Phase 2's Socket.io share the same HTTP server on PORT.
  * 
  * Why unified? Render free tier = 1 service. Running separately would need 2 services.  
@@ -36,8 +37,17 @@ import { runHolderSurveillance } from './src/tasks/holderSurveillance.js';
 import { MONITORED_PROTOCOLS } from './src/config/protocols.js';
 import { evaluateAlerts } from './src/engine/alertEvaluator.js';
 import telegramBot from './src/alerts/telegramBot.js';
-import p2Db from './src/database/phase2Db.js';
+import p2Db, { resetUserData, getUserByTelegramId } from './src/database/phase2Db.js';
 import { createLogger as createP2Logger } from './src/utils/logger.js';
+
+// Phase 3 imports
+import authRoutes from './src/routes/auth.js';
+import walletRoutes from './src/routes/wallet.js';
+import portfolioRoutes from './src/routes/portfolio.js';
+import suggestionsRoutes from './src/routes/suggestions.js';
+import { initWhaleDetector, onLiquidityEvent } from './src/trading/whaleDetector.js';
+import { updateAllPositionsPnL } from './src/trading/pnlUpdater.js';
+import { initEcosystemReport } from './src/tasks/ecosystemReport.js';
 
 const logger = createP1Logger('unified-server');
 const PORT = parseInt(process.env.PORT || '3001');
@@ -48,7 +58,8 @@ async function bootstrap() {
     logger.info(`
     ╔═══════════════════════════════════════════╗
     ║  ARGUS — DeFi Contagion Shield            ║
-    ║  Unified Server (Phase 1 + 2 + Telegram)  ║
+    ║  Unified Server (Phase 1 + 2 + 3)         ║
+    ║  Paper Trading + Telegram Login            ║
     ╚═══════════════════════════════════════════╝
     `);
 
@@ -88,8 +99,8 @@ async function bootstrap() {
     await pollManager.start();
 
     // Phase 1 API routes
-    app.get('/api/health', (req, res) => {
-      const dbStats = signalRepo.getSignalCounts();
+    app.get('/api/health', async (req, res) => {
+      const dbStats = await signalRepo.getSignalCounts();
       res.json({
         status: "ok",
         uptime: Math.floor((Date.now() - startTime) / 1000),
@@ -100,6 +111,7 @@ async function bootstrap() {
         engine: {
           phase1: true,
           phase2: true,
+          phase3: true,
           telegram: !!process.env.TELEGRAM_BOT_TOKEN
         }
       });
@@ -112,10 +124,10 @@ async function bootstrap() {
     // 3. Phase 2: Risk Engine
     // =============================================
     logger.info('Starting Phase 2: Risk Engine...');
-    initPhase2Db();
+    await initPhase2Db();
 
     // Telegram Bot
-    telegramBot.init();
+    await telegramBot.init();
 
     // Canary refresh (non-critical)
     try {
@@ -151,7 +163,7 @@ async function bootstrap() {
       io.emit('signal_event', {
         id: tx.tx_hash || Math.random().toString(),
         type: 'swap',
-        description: `Live Swap: ${tx.from_token} \u2192 ${tx.to_token} on ${result.address?.substring(0,6)}`,
+        description: `Live Swap: ${tx.from_token} → ${tx.to_token} on ${result.address?.substring(0,6)}`,
         protocolId: result.chain || 'eth',
         amountUsd: parseInt(tx.amount_usd || '0'),
         severity: isRed ? 'high' : 'low',
@@ -162,6 +174,14 @@ async function bootstrap() {
     wsManager.on('liq_event', (result) => {
       if (!result || !result.tx) return;
       const tx = result.tx;
+
+      // Phase 3: Feed liquidity events to whale detector
+      try {
+        onLiquidityEvent(result, result.chain || 'eth');
+      } catch (e) {
+        logger.debug({ error: e.message }, 'Whale detector processing failed (non-critical)');
+      }
+
       if (tx.action === 'removeLiquidity') {
         const isRed = parseInt(tx.amount_usd || '0') > 20000;
         io.emit('signal_event', {
@@ -181,35 +201,44 @@ async function bootstrap() {
       res.json({ timestamp: Date.now(), scores: latestScores });
     });
 
-    app.get('/api/scores/history/:protocolId', (req, res) => {
+    app.get('/api/scores/history/:protocolId', async (req, res) => {
       const limit = parseInt(req.query.limit) || 100;
       try {
-        const history = p2Db.prepare('SELECT * FROM scores WHERE protocol_id = ? ORDER BY computed_at DESC LIMIT ?').all(req.params.protocolId, limit);
-        res.json({ protocolId: req.params.protocolId, history });
+        const result = await p2Db.execute({
+          sql: 'SELECT * FROM scores WHERE protocol_id = ? ORDER BY computed_at DESC LIMIT ?',
+          args: [req.params.protocolId, limit]
+        });
+        res.json({ protocolId: req.params.protocolId, history: result.rows });
       } catch (e) {
+        logger.error({ error: e.message }, 'Failed to fetch score history');
         res.status(500).json({ error: 'Internal error' });
       }
     });
 
-    app.get('/api/scores/all', (req, res) => {
+    app.get('/api/scores/all', async (req, res) => {
       try {
-        const scores = p2Db.prepare(`
+        const result = await p2Db.execute(`
           SELECT s1.* FROM scores s1
           INNER JOIN (SELECT protocol_id, MAX(computed_at) as max_at FROM scores GROUP BY protocol_id) s2
           ON s1.protocol_id = s2.protocol_id AND s1.computed_at = s2.max_at
-        `).all();
-        res.json({ scores });
+        `);
+        res.json({ scores: result.rows });
       } catch (e) {
+        logger.error({ error: e.message }, 'Failed to fetch all scores');
         res.status(500).json({ error: 'Internal error' });
       }
     });
 
-    app.get('/api/alerts/recent', (req, res) => {
+    app.get('/api/alerts/recent', async (req, res) => {
       const limit = parseInt(req.query.limit) || 20;
       try {
-        const alerts = p2Db.prepare('SELECT * FROM alerts ORDER BY created_at DESC LIMIT ?').all(limit);
-        res.json({ alerts });
+        const result = await p2Db.execute({
+          sql: 'SELECT * FROM alerts ORDER BY created_at DESC LIMIT ?',
+          args: [limit]
+        });
+        res.json({ alerts: result.rows });
       } catch (e) {
+        logger.error({ error: e.message }, 'Failed to fetch recent alerts');
         res.status(500).json({ error: 'Internal error' });
       }
     });
@@ -232,11 +261,7 @@ async function bootstrap() {
         const holdings = walletResult.data;
         
         // 2. Cross-reference with our in-memory latestScores
-        // walletResult.data typically gives us { token, balance, price, value, ... }
-        // We will match the token address to our MONITORED_PROTOCOLS to see if they hold it.
-
         const exposure = holdings.map(tokenAsset => {
-           // Find matching protocol in our list
            const matchingProtocol = MONITORED_PROTOCOLS.find(p => p.chain === chain && p.tokenId.toLowerCase().startsWith(tokenAsset.token.toLowerCase()));
            let riskData = null;
 
@@ -250,7 +275,6 @@ async function bootstrap() {
                  protocolName: scoreData.protocolName
                };
              } else {
-               // Provide a fallback risk score if it hasn't computed yet
                riskData = {
                  score: 48,
                  alertLevel: 'ORANGE',
@@ -291,6 +315,40 @@ async function bootstrap() {
       }
     });
 
+    // =============================================
+    // 4. Phase 3: Paper Trading System
+    // =============================================
+    logger.info('Starting Phase 3: Paper Trading System...');
+
+    // Mount Phase 3 API routes
+    app.use('/auth', authRoutes);
+    app.use('/api/wallet', walletRoutes);
+    app.use('/api/portfolio', portfolioRoutes);
+    app.use('/api', portfolioRoutes); // Also mount at /api for /api/positions
+    app.use('/api/suggestions', suggestionsRoutes);
+
+    // Initialize whale detector with telegram bot
+    initWhaleDetector(telegramBot);
+
+    // Initialize ecosystem report scheduler
+    initEcosystemReport(telegramBot);
+
+    // Dev reset endpoint (for demo)
+    app.post('/dev/reset', async (req, res) => {
+      try {
+        const { telegram_id } = req.body;
+        if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+        const user = await getUserByTelegramId(String(telegram_id));
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        await resetUserData(user.id);
+        res.json({ success: true, message: 'User data reset' });
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    logger.info('Phase 3: Paper Trading System ✓');
+
     // Override socketServer.broadcastScores for unified mode
     const broadcastScores = (scores) => {
       latestScores = scores.map(s => ({ ...s, computedAt: Date.now() }));
@@ -309,6 +367,11 @@ async function bootstrap() {
     await runUnifiedPollCycle();
     setInterval(runUnifiedPollCycle, 60 * 1000);
 
+    // Phase 3: P&L update loop (every 60s, offset by 30s from poll cycle)
+    setTimeout(() => {
+      setInterval(() => updateAllPositionsPnL(io), 60 * 1000);
+    }, 30 * 1000);
+
     // Background tasks
     setInterval(() => {
       refreshCanaries('eth').catch(() => {});
@@ -324,7 +387,7 @@ async function bootstrap() {
     logger.info('Phase 2: Risk Engine ✓');
 
     // =============================================
-    // 4. Start Unified Server
+    // 5. Start Unified Server
     // =============================================
     httpServer.listen(PORT, '0.0.0.0', () => {
       const monitored = protocols.map(p => `${p.symbol} (${p.chain})`).join(', ');
@@ -334,6 +397,7 @@ async function bootstrap() {
       logger.info(`🛡️  ARGUS Unified Server: http://0.0.0.0:${PORT}`);
       logger.info(`📡 Phase 1: Data Pipeline OK`);
       logger.info(`🧠 Phase 2: Risk Engine OK`);
+      logger.info(`💰 Phase 3: Paper Trading OK`);
       logger.info(`🤖 Telegram: ${process.env.TELEGRAM_BOT_TOKEN ? 'ACTIVE' : 'DISABLED'}`);
       logger.info(`📊 Tokens: ${monitored}`);
       logger.info(`🔗 Pairs: ${pairs}`);

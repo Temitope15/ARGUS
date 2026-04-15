@@ -107,7 +107,7 @@ export async function runPollCycle() {
       
       // Persist to DB
       try {
-        _saveScore(protocolScore);
+        await _saveScore(protocolScore);
       } catch (err) {
         logger.error({ protocolId: protocolScore.protocolId, error: err.message }, 'Failed to save score');
       }
@@ -135,20 +135,21 @@ export async function runPollCycle() {
   }
 }
 
-function _saveScore(s) {
-  db.prepare(`
-    INSERT INTO scores (
+async function _saveScore(s) {
+  await db.execute({
+    sql: `INSERT INTO scores (
       protocol_id, score, alert_level, 
       signal_tvl_pts, signal_lp_pts, signal_depeg_pts, 
       signal_smart_money_pts, signal_ave_risk_pts, 
       contagion_multiplier_applied, low_confidence, computed_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    s.protocolId, s.score, s.alertLevel,
-    s.signals.tvlVelocityPts, s.signals.lpDrainRatePts, s.signals.stablecoinDepegPts,
-    s.signals.smartMoneyExitPts, s.signals.aveRiskScorePts,
-    s.contagionMultiplierApplied ? 1 : 0, s.lowConfidence ? 1 : 0, Date.now()
-  );
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [
+      s.protocolId, s.score, s.alertLevel,
+      s.signals.tvlVelocityPts, s.signals.lpDrainRatePts, s.signals.stablecoinDepegPts,
+      s.signals.smartMoneyExitPts, s.signals.aveRiskScorePts,
+      s.contagionMultiplierApplied ? 1 : 0, s.lowConfidence ? 1 : 0, Date.now()
+    ]
+  });
 }
 
 export default { runPollCycle };

@@ -55,17 +55,19 @@ class ArgusSocketServer {
     });
 
     // Score history for a specific protocol
-    this.app.get('/api/scores/history/:protocolId', (req, res) => {
+    this.app.get('/api/scores/history/:protocolId', async (req, res) => {
       const { protocolId } = req.params;
       const limit = parseInt(req.query.limit) || 100;
       
       try {
-        const history = db.prepare(`
-          SELECT * FROM scores 
-          WHERE protocol_id = ? 
-          ORDER BY computed_at DESC 
-          LIMIT ?
-        `).all(protocolId, limit);
+        const result = await db.execute({
+          sql: `SELECT * FROM scores 
+                WHERE protocol_id = ? 
+                ORDER BY computed_at DESC 
+                LIMIT ?`,
+          args: [protocolId, limit]
+        });
+        const history = result.rows;
         
         res.json({ protocolId, history });
       } catch (error) {
@@ -75,16 +77,17 @@ class ArgusSocketServer {
     });
 
     // All protocols' latest scores from DB
-    this.app.get('/api/scores/all', (req, res) => {
+    this.app.get('/api/scores/all', async (req, res) => {
       try {
-        const scores = db.prepare(`
+        const result = await db.execute(`
           SELECT s1.* FROM scores s1
           INNER JOIN (
             SELECT protocol_id, MAX(computed_at) as max_at
             FROM scores
             GROUP BY protocol_id
           ) s2 ON s1.protocol_id = s2.protocol_id AND s1.computed_at = s2.max_at
-        `).all();
+        `);
+        const scores = result.rows;
         
         res.json({ scores });
       } catch (error) {
@@ -94,15 +97,17 @@ class ArgusSocketServer {
     });
 
     // Recent alerts
-    this.app.get('/api/alerts/recent', (req, res) => {
+    this.app.get('/api/alerts/recent', async (req, res) => {
       const limit = parseInt(req.query.limit) || 20;
       
       try {
-        const alerts = db.prepare(`
-          SELECT * FROM alerts 
-          ORDER BY created_at DESC 
-          LIMIT ?
-        `).all(limit);
+        const result = await db.execute({
+          sql: `SELECT * FROM alerts 
+                ORDER BY created_at DESC 
+                LIMIT ?`,
+          args: [limit]
+        });
+        const alerts = result.rows;
         
         res.json({ alerts });
       } catch (error) {

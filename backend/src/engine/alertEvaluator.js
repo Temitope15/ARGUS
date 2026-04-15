@@ -17,11 +17,13 @@ export async function evaluateAlerts(protocol, newScoreObj) {
     const { score, alertLevel, lowConfidence, contagionMultiplierApplied } = newScoreObj;
 
     // 1. Get last alert status for this protocol
-    const lastAlert = db.prepare(`
-      SELECT * FROM alerts 
-      WHERE protocol_id = ? 
-      ORDER BY created_at DESC LIMIT 1
-    `).get(protocolId);
+    const result = await db.execute({
+      sql: `SELECT * FROM alerts 
+            WHERE protocol_id = ? 
+            ORDER BY created_at DESC LIMIT 1`,
+      args: [protocolId]
+    });
+    const lastAlert = result.rows[0];
 
     const prevLevel = lastAlert ? lastAlert.alert_level : 'GREEN';
     const prevScore = lastAlert ? lastAlert.score : 0;
@@ -71,14 +73,13 @@ export async function evaluateAlerts(protocol, newScoreObj) {
       }
 
       const messageId = await telegramBot.sendAlert(messageData);
-      const logMessage = tradeResult ? `RED alert with Trade: ${tradeResult.mode}` : 'First alert or escalation';
-      _recordAlert(protocolId, alertLevel, score, logMessage, messageId);
+      await _recordAlert(protocolId, alertLevel, score, logMessage, messageId);
     } else if (action === 'EDIT_EXISTING' && lastAlert?.telegram_message_id) {
       await telegramBot.editAlert(lastAlert.telegram_message_id, messageData);
-      _recordAlert(protocolId, alertLevel, score, 'Score update (Edit)', lastAlert.telegram_message_id);
+      await _recordAlert(protocolId, alertLevel, score, 'Score update (Edit)', lastAlert.telegram_message_id);
     } else if (action === 'SEND_RESOLVED') {
       await telegramBot.sendResolved(messageData);
-      _recordAlert(protocolId, alertLevel, score, 'Risk resolved/downgraded', null);
+      await _recordAlert(protocolId, alertLevel, score, 'Risk resolved/downgraded', null);
     }
 
   } catch (error) {
@@ -96,11 +97,12 @@ function isDowngrade(oldLevel, newLevel) {
   return levels.indexOf(newLevel) < levels.indexOf(oldLevel);
 }
 
-function _recordAlert(protocolId, level, score, msg, tgId) {
-  db.prepare(`
-    INSERT INTO alerts (protocol_id, alert_level, score, message, telegram_message_id, telegram_sent, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(protocolId, level, score, msg, tgId, tgId ? 1 : 0, Date.now());
+async function _recordAlert(protocolId, level, score, msg, tgId) {
+  await db.execute({
+    sql: `INSERT INTO alerts (protocol_id, alert_level, score, message, telegram_message_id, telegram_sent, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    args: [protocolId, level, score, msg, tgId, tgId ? 1 : 0, Date.now()]
+  });
 }
 
 export default { evaluateAlerts };

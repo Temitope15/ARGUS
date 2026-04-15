@@ -10,30 +10,29 @@ export const liquidityRepo = {
    * @param {Object} event - The normalized LiquidityEvent object.
    * @returns {Object} Database run result.
    */
-  saveLiquidityEvent: (event) => {
-    const stmt = db.prepare(`
-      INSERT INTO liquidity_events (
+  saveLiquidityEvent: async (event) => {
+    return await db.execute({
+      sql: `INSERT INTO liquidity_events (
         id, timestamp, chain, protocol, pair_address,
         token_in, token_out, amount_usd, event_type,
         wallet_address, tx_hash, block_number, raw_data
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    return stmt.run(
-      event.id || uuidv4(),
-      event.timestamp,
-      event.chain,
-      event.protocol,
-      event.pairAddress,
-      event.tokenIn,
-      event.tokenOut,
-      event.amountUsd,
-      event.eventType,
-      event.walletAddress,
-      event.txHash,
-      event.blockNumber,
-      event.rawData
-    );
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        event.id || uuidv4(),
+        event.timestamp,
+        event.chain,
+        event.protocol,
+        event.pairAddress,
+        event.tokenIn,
+        event.tokenOut,
+        event.amountUsd,
+        event.eventType,
+        event.walletAddress,
+        event.txHash,
+        event.blockNumber,
+        event.rawData
+      ]
+    });
   },
 
   /**
@@ -43,13 +42,15 @@ export const liquidityRepo = {
    * @param {number} windowMs - The time window in milliseconds.
    * @returns {Object} Statistics including counts, volume, and drain ratio.
    */
-  getLiquidityDrainStats: (chain, pairAddress, windowMs) => {
+  getLiquidityDrainStats: async (chain, pairAddress, windowMs) => {
     const since = Date.now() - windowMs;
     
-    const events = db.prepare(`
-      SELECT * FROM liquidity_events 
-      WHERE chain = ? AND pair_address = ? AND timestamp >= ?
-    `).all(chain, pairAddress, since);
+    const res = await db.execute({
+      sql: `SELECT * FROM liquidity_events 
+            WHERE chain = ? AND pair_address = ? AND timestamp >= ?`,
+      args: [chain, pairAddress, since]
+    });
+    const events = res.rows;
 
     const removeLiquidity = events.filter(e => e.event_type === 'removeLiquidity');
     const addLiquidity = events.filter(e => e.event_type === 'addLiquidity');

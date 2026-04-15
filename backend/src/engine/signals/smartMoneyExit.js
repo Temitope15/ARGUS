@@ -18,10 +18,12 @@ export async function computeSmartMoneyExit(chain, protocolId, pairAddress) {
     const windowMs = 60 * 60 * 1000;
     const since = now - windowMs;
 
-    const recentExits = db.prepare(`
-      SELECT * FROM canary_exits 
-      WHERE protocol_id = ? AND occurred_at >= ?
-    `).all(protocolId, since);
+    const result = await db.execute({
+      sql: `SELECT * FROM canary_exits 
+            WHERE protocol_id = ? AND occurred_at >= ?`,
+      args: [protocolId, since]
+    });
+    const recentExits = result.rows;
 
     if (recentExits.length === 0) return { pts: 0, exits: [], skipped: false };
 
@@ -62,7 +64,11 @@ export async function scanForCanaryExits(chain, protocolId, pairAddress) {
     if (!data || !data.events) return;
 
     // Get all canary wallets for this chain
-    const canaries = db.prepare('SELECT address FROM canary_wallets WHERE chain = ?').all(chain);
+    const result = await db.execute({
+      sql: 'SELECT address FROM canary_wallets WHERE chain = ?',
+      args: [chain]
+    });
+    const canaries = result.rows;
     const canarySet = new Set(canaries.map(c => c.address.toLowerCase()));
 
     for (const event of data.events) {
@@ -76,13 +82,16 @@ export async function scanForCanaryExits(chain, protocolId, pairAddress) {
             protocolId
           }, 'Canary wallet exit detected!');
 
-          // Persist if not already tracked (by tx hash)
-          const existing = db.prepare('SELECT id FROM canary_exits WHERE id = ?').get(event.txHash); // wait, using tx_hash as id logic might vary
+          const existingRes = await db.execute({
+            sql: 'SELECT id FROM canary_exits WHERE id = ?',
+            args: [event.txHash]
+          });
           
-          db.prepare(`
-            INSERT OR IGNORE INTO canary_exits (wallet_address, protocol_id, amount_usd, occurred_at)
-            VALUES (?, ?, ?, ?)
-          `).run(event.walletAddress, protocolId, event.amountUsd, event.timestamp);
+          await db.execute({
+            sql: `INSERT INTO canary_exits (wallet_address, protocol_id, amount_usd, occurred_at)
+                  VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING`,
+            args: [event.walletAddress, protocolId, event.amountUsd, event.timestamp]
+          });
         }
       }
     }

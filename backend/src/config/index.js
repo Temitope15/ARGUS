@@ -9,15 +9,17 @@ const config = {
   phase1ApiUrl: process.env.PHASE1_API_URL || 'http://localhost:3001',
   socketPort: parseInt(process.env.SOCKET_PORT || '3002'),
   
-  dbPath: process.env.DB_PATH || './data/argus.db',
+  dbPath: process.env.DB_PATH,
+  tursoUrl: process.env.TURSO_URL,
+  tursoAuthToken: process.env.TURSO_AUTH_TOKEN,
   
   ave: {
-    apiKey: process.env.AVE_API_KEY || '',
+    apiKey: process.env.AVE_API_KEY,
   },
   
   telegram: {
-    botToken: process.env.TELEGRAM_BOT_TOKEN || '',
-    chatId: process.env.TELEGRAM_CHAT_ID || ''
+    botToken: process.env.TELEGRAM_BOT_TOKEN,
+    chatId: process.env.TELEGRAM_CHAT_ID
   },
 
   // Poll intervals (ms)

@@ -10,31 +10,30 @@ export const swapRepo = {
    * @param {Object} event - The normalized SwapEvent object.
    * @returns {Object} Database run result.
    */
-  saveSwapEvent: (event) => {
-    const stmt = db.prepare(`
-      INSERT INTO swap_events (
+  saveSwapEvent: async (event) => {
+    return await db.execute({
+      sql: `INSERT INTO swap_events (
         id, timestamp, chain, pair_address, wallet_address,
         from_token, to_token, from_amount_usd, to_amount_usd,
         is_sell, pair_liquidity_usd, tx_hash, block_number, raw_data
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    return stmt.run(
-      event.id || uuidv4(),
-      event.timestamp,
-      event.chain,
-      event.pairAddress,
-      event.walletAddress,
-      event.fromToken,
-      event.toToken,
-      event.fromAmountUsd,
-      event.toAmountUsd,
-      event.isSell ? 1 : 0,
-      event.pairLiquidityUsd,
-      event.txHash,
-      event.blockNumber,
-      event.rawData
-    );
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        event.id || uuidv4(),
+        event.timestamp,
+        event.chain,
+        event.pairAddress,
+        event.walletAddress,
+        event.fromToken,
+        event.toToken,
+        event.fromAmountUsd,
+        event.toAmountUsd,
+        event.isSell ? 1 : 0,
+        event.pairLiquidityUsd,
+        event.txHash,
+        event.blockNumber,
+        event.rawData
+      ]
+    });
   },
 
   /**
@@ -44,13 +43,15 @@ export const swapRepo = {
    * @param {number} windowMs - Time window in milliseconds.
    * @returns {Object} Statistics including volumes, ratio, and swap details.
    */
-  getSellPressureStats: (chain, pairAddress, windowMs) => {
+  getSellPressureStats: async (chain, pairAddress, windowMs) => {
     const since = Date.now() - windowMs;
     
-    const swaps = db.prepare(`
-      SELECT * FROM swap_events 
-      WHERE chain = ? AND pair_address = ? AND timestamp >= ?
-    `).all(chain, pairAddress, since);
+    const res = await db.execute({
+      sql: `SELECT * FROM swap_events 
+            WHERE chain = ? AND pair_address = ? AND timestamp >= ?`,
+      args: [chain, pairAddress, since]
+    });
+    const swaps = res.rows;
 
     const sells = swaps.filter(s => s.is_sell === 1);
     const buys = swaps.filter(s => s.is_sell === 0);

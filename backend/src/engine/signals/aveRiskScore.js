@@ -21,11 +21,13 @@ export async function computeAveRiskScore(chain, protocolId, tokenAddress) {
     const currentScore = data.analysis_risk_score || 0;
     
     // 1. Get previous reading from scores table
-    const lastEvaluation = db.prepare(`
-      SELECT signal_ave_risk_pts, score FROM scores 
-      WHERE protocol_id = ? 
-      ORDER BY computed_at DESC LIMIT 1
-    `).get(protocolId);
+    const result = await db.execute({
+      sql: `SELECT signal_ave_risk_pts, score FROM scores 
+            WHERE protocol_id = ? 
+            ORDER BY computed_at DESC LIMIT 1`,
+      args: [protocolId]
+    });
+    const lastEvaluation = result.rows[0];
 
     // 2. Base pts calculation
     let pts = 0;
@@ -36,12 +38,14 @@ export async function computeAveRiskScore(chain, protocolId, tokenAddress) {
     const prevScore = lastEvaluation ? lastEvaluation.score : 0; // Simplified - actually need the raw AVE score from last time
     // For now, let's assume we store the raw score in a metadata field or just use the pts spike
     
-    // Better Spike Detection - query direct from contract_risks table (Phase 1 table)
-    const prevRisk = db.prepare(`
-      SELECT analysis_risk_score FROM contract_risks 
-      WHERE chain = ? AND token_address = ? AND timestamp < ?
-      ORDER BY timestamp DESC LIMIT 1
-    `).get(chain, tokenAddress, Date.now() - 1000); // 1s ago
+    // Better Spike Detection - query direct from contract_risks table
+    const riskResult = await db.execute({
+      sql: `SELECT analysis_risk_score FROM contract_risks 
+            WHERE chain = ? AND token_address = ? AND timestamp < ?
+            ORDER BY timestamp DESC LIMIT 1`,
+      args: [chain, tokenAddress, Date.now() - 1000]
+    });
+    const prevRisk = riskResult.rows[0];
 
     if (prevRisk && (currentScore - prevRisk.analysis_risk_score) > 20) {
       logger.warn({ 

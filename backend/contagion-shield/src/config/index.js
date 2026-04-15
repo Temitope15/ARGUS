@@ -9,7 +9,9 @@ dotenv.config();
 const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || process.env.INTERNAL_API_PORT || '3001', 10),
-  dbPath: process.env.DB_PATH || './data/contagion.db',
+  dbPath: process.env.DB_PATH,
+  tursoUrl: process.env.TURSO_URL,
+  tursoAuthToken: process.env.TURSO_AUTH_TOKEN,
   logLevel: process.env.LOG_LEVEL || 'info',
   
   ave: {
@@ -34,7 +36,7 @@ const config = {
 };
 
 // Validation
-const requiredVars = ['AVE_API_KEY'];
+const requiredVars = ['AVE_API_KEY', 'DB_PATH'];
 requiredVars.forEach((varName) => {
   if (!process.env[varName]) {
     throw new Error(`CRITICAL: Missing required environment variable: ${varName}`);

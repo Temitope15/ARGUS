@@ -1,11 +1,12 @@
 /**
  * Initial migration - Creates all tables and indexes.
+ * Updated for LibSQL format.
  */
 
-export const up = (db) => {
-  // Liquidity Events
-  db.exec(`
-    CREATE TABLE liquidity_events (
+export const up = async (db) => {
+  const statements = [
+    // Liquidity Events
+    `CREATE TABLE liquidity_events (
       id TEXT PRIMARY KEY,
       timestamp INTEGER NOT NULL,
       chain TEXT NOT NULL,
@@ -20,15 +21,13 @@ export const up = (db) => {
       block_number INTEGER,
       raw_data TEXT,
       created_at INTEGER DEFAULT (unixepoch('now') * 1000)
-    );
-    CREATE INDEX idx_liq_events_chain_pair ON liquidity_events(chain, pair_address);
-    CREATE INDEX idx_liq_events_timestamp ON liquidity_events(timestamp);
-    CREATE INDEX idx_liq_events_type ON liquidity_events(event_type);
-  `);
+    )`,
+    `CREATE INDEX idx_liq_events_chain_pair ON liquidity_events(chain, pair_address)`,
+    `CREATE INDEX idx_liq_events_timestamp ON liquidity_events(timestamp)`,
+    `CREATE INDEX idx_liq_events_type ON liquidity_events(event_type)`,
 
-  // Swap Events
-  db.exec(`
-    CREATE TABLE swap_events (
+    // Swap Events
+    `CREATE TABLE swap_events (
       id TEXT PRIMARY KEY,
       timestamp INTEGER NOT NULL,
       chain TEXT NOT NULL,
@@ -44,14 +43,12 @@ export const up = (db) => {
       block_number INTEGER,
       raw_data TEXT,
       created_at INTEGER DEFAULT (unixepoch('now') * 1000)
-    );
-    CREATE INDEX idx_swap_events_pair ON swap_events(pair_address);
-    CREATE INDEX idx_swap_events_timestamp ON swap_events(timestamp);
-  `);
+    )`,
+    `CREATE INDEX idx_swap_events_pair ON swap_events(pair_address)`,
+    `CREATE INDEX idx_swap_events_timestamp ON swap_events(timestamp)`,
 
-  // Price Snapshots
-  db.exec(`
-    CREATE TABLE price_snapshots (
+    // Price Snapshots
+    `CREATE TABLE price_snapshots (
       id TEXT PRIMARY KEY,
       timestamp INTEGER NOT NULL,
       chain TEXT NOT NULL,
@@ -64,14 +61,12 @@ export const up = (db) => {
       volume_u_24h REAL,
       source TEXT,
       created_at INTEGER DEFAULT (unixepoch('now') * 1000)
-    );
-    CREATE INDEX idx_price_snapshots_token ON price_snapshots(chain, token_address);
-    CREATE INDEX idx_price_snapshots_timestamp ON price_snapshots(timestamp);
-  `);
+    )`,
+    `CREATE INDEX idx_price_snapshots_token ON price_snapshots(chain, token_address)`,
+    `CREATE INDEX idx_price_snapshots_timestamp ON price_snapshots(timestamp)`,
 
-  // Pair Snapshots
-  db.exec(`
-    CREATE TABLE pair_snapshots (
+    // Pair Snapshots
+    `CREATE TABLE pair_snapshots (
       id TEXT PRIMARY KEY,
       timestamp INTEGER NOT NULL,
       chain TEXT NOT NULL,
@@ -93,14 +88,12 @@ export const up = (db) => {
       sells_count_4h INTEGER,
       source TEXT,
       created_at INTEGER DEFAULT (unixepoch('now') * 1000)
-    );
-    CREATE INDEX idx_pair_snapshots_pair ON pair_snapshots(chain, pair_address);
-    CREATE INDEX idx_pair_snapshots_timestamp ON pair_snapshots(timestamp);
-  `);
+    )`,
+    `CREATE INDEX idx_pair_snapshots_pair ON pair_snapshots(chain, pair_address)`,
+    `CREATE INDEX idx_pair_snapshots_timestamp ON pair_snapshots(timestamp)`,
 
-  // Contract Risks
-  db.exec(`
-    CREATE TABLE contract_risks (
+    // Contract Risks
+    `CREATE TABLE contract_risks (
       id TEXT PRIMARY KEY,
       timestamp INTEGER NOT NULL,
       chain TEXT NOT NULL,
@@ -110,17 +103,18 @@ export const up = (db) => {
       lock_percent REAL,
       source TEXT,
       created_at INTEGER DEFAULT (unixepoch('now') * 1000)
-    );
-    CREATE INDEX idx_contract_risks_token ON contract_risks(chain, token_address);
-  `);
+    )`,
+    `CREATE INDEX idx_contract_risks_token ON contract_risks(chain, token_address)`
+  ];
+
+  for (const stmt of statements) {
+    await db.execute(stmt);
+  }
 };
 
-export const down = (db) => {
-  db.exec(`
-    DROP TABLE IF EXISTS liquidity_events;
-    DROP TABLE IF EXISTS swap_events;
-    DROP TABLE IF EXISTS price_snapshots;
-    DROP TABLE IF EXISTS pair_snapshots;
-    DROP TABLE IF EXISTS contract_risks;
-  `);
+export const down = async (db) => {
+  const tables = ['liquidity_events', 'swap_events', 'price_snapshots', 'pair_snapshots', 'contract_risks'];
+  for (const table of tables) {
+    await db.execute(`DROP TABLE IF EXISTS ${table}`);
+  }
 };

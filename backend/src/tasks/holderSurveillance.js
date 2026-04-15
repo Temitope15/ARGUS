@@ -39,11 +39,13 @@ export async function runHolderSurveillance(tokenId) {
 
     // 1. Get previous snapshot (approx 60 min ago)
     const prevSnapTime = now - (65 * 60 * 1000); // 65 min buffer
-    const prevHolders = db.prepare(`
-      SELECT * FROM holder_snapshots 
-      WHERE token_id = ? AND snapshotted_at >= ?
-      ORDER BY snapshotted_at DESC
-    `).all(tokenId, prevSnapTime);
+    const result = await db.execute({
+      sql: `SELECT * FROM holder_snapshots 
+            WHERE token_id = ? AND snapshotted_at >= ?
+            ORDER BY snapshotted_at DESC`,
+      args: [tokenId, prevSnapTime]
+    });
+    const prevHolders = result.rows;
 
     // Group by address for easy comparison
     const prevMap = new Map(prevHolders.map(h => [h.holder_address.toLowerCase(), h]));
@@ -81,30 +83,33 @@ export async function runHolderSurveillance(tokenId) {
     }
 
     // 3. Persist new snapshot
-    const insert = db.prepare(`
-      INSERT INTO holder_snapshots (token_id, holder_address, balance_ratio, balance_usd, rank, snapshotted_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
-    const transaction = db.transaction((list) => {
-      for (let i = 0; i < list.length; i++) {
-        const h = list[i];
-        if (!h.address) continue;
-        insert.run(
+    const batchStmts = [];
+    for (let i = 0; i < holders.length; i++) {
+      const h = holders[i];
+      if (!h.address) continue;
+      batchStmts.push({
+        sql: `INSERT INTO holder_snapshots (token_id, holder_address, balance_ratio, balance_usd, rank, snapshotted_at)
+              VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [
           tokenId, 
           h.address, 
           parseFloat(h.percent || 0),       // percent not ratio
           parseFloat(h.quantity || 0),       // quantity not amount_usd (token units)
           i + 1,                             // rank from position, not h.rank
           now
-        );
-      }
-    });
+        ]
+      });
+    }
 
-    transaction(holders);
+    if (batchStmts.length > 0) {
+      await db.batch(batchStmts, 'write');
+    }
     
     // Cleanup old snapshots (>24h)
-    db.prepare('DELETE FROM holder_snapshots WHERE snapshotted_at < ?').run(now - (24 * 60 * 60 * 1000));
+    await db.execute({
+      sql: 'DELETE FROM holder_snapshots WHERE snapshotted_at < ?',
+      args: [now - (24 * 60 * 60 * 1000)]
+    });
     
     logger.debug({ tokenId, holdersTracked: holders.length }, 'Holder surveillance complete');
 

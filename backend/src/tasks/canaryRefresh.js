@@ -37,25 +37,25 @@ export async function refreshCanaries(chain) {
     const top50 = walletList.slice(0, 50);
     const now = Date.now();
 
-    const insert = db.prepare(`
-      INSERT OR REPLACE INTO canary_wallets (address, chain, total_profit, total_profit_rate, refreshed_at)
-      VALUES (?, ?, ?, ?, ?)
-    `);
+    const batchStmts = top50.map(wallet => ({
+      sql: `INSERT INTO canary_wallets (address, chain, total_profit, total_profit_rate, refreshed_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(address, chain) DO UPDATE SET 
+              total_profit=excluded.total_profit, 
+              total_profit_rate=excluded.total_profit_rate, 
+              refreshed_at=excluded.refreshed_at`,
+      args: [
+        wallet.wallet_address,
+        chain, 
+        wallet.total_profit || 0, 
+        wallet.total_profit_rate || 0, 
+        now
+      ]
+    }));
 
-    // Perform inside transaction
-    const transaction = db.transaction((wallets) => {
-      for (const wallet of wallets) {
-        insert.run(
-          wallet.wallet_address,  // Field name is wallet_address, not address
-          chain, 
-          wallet.total_profit || 0, 
-          wallet.total_profit_rate || 0, 
-          now
-        );
-      }
-    });
-
-    transaction(top50);
+    if (batchStmts.length > 0) {
+      await db.batch(batchStmts, 'write');
+    }
     logger.info({ count: top50.length, chain }, 'Canary wallets updated');
 
   } catch (error) {

@@ -7,11 +7,12 @@ import { SystemStats } from '@/components/dashboard/SystemStats';
 import { ProtocolGrid } from '@/components/dashboard/ProtocolGrid';
 import { LiveFeed } from '@/components/dashboard/LiveFeed';
 import { PositionsScanner } from '@/components/dashboard/PositionsScanner';
+import { PortfolioView } from '@/components/dashboard/PortfolioView';
 import { useArgusSocket } from '@/hooks/useArgusSocket';
 import { useMockData } from '@/hooks/useMockData';
 
 export default function DashboardPage() {
-  const [viewMode, setViewMode] = React.useState<'markets' | 'positions'>('markets');
+  const [viewMode, setViewMode] = React.useState<'markets' | 'positions' | 'portfolio'>('markets');
   const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
   const liveData = useArgusSocket();
   const mockData = useMockData();
@@ -39,6 +40,13 @@ export default function DashboardPage() {
           {viewMode === 'markets' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-argus" />}
         </button>
         <button 
+          onClick={() => setViewMode('portfolio')}
+          className={`pb-4 text-sm font-bold transition-colors relative ${viewMode === 'portfolio' ? 'text-white' : 'text-secondary hover:text-white'}`}
+        >
+          📋 Portfolio
+          {viewMode === 'portfolio' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-argus" />}
+        </button>
+        <button 
           onClick={() => setViewMode('positions')}
           className={`pb-4 text-sm font-bold transition-colors relative ${viewMode === 'positions' ? 'text-white' : 'text-secondary hover:text-white'}`}
         >
@@ -60,6 +68,8 @@ export default function DashboardPage() {
               <LiveFeed events={events} />
             </aside>
           </>
+        ) : viewMode === 'portfolio' ? (
+          <PortfolioView />
         ) : (
           <PositionsScanner />
         )}

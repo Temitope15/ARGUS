@@ -66,8 +66,8 @@ async function bootstrap() {
     app.use(express.json());
     
     // Health Check Endpoint
-    app.get('/api/health', (req, res) => {
-      const dbStats = signalRepo.getSignalCounts();
+    app.get('/api/health', async (req, res) => {
+      const dbStats = await signalRepo.getSignalCounts();
       res.json({
         status: "ok",
         uptime: Math.floor((Date.now() - startTime) / 1000),
