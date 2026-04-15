@@ -15,6 +15,14 @@ DeFi risk is viral. When a major pool loses liquidity or a stablecoin slips its 
 
 ---
 
+## 📸 Visual Intelligence
+The ARGUS dashboard provides a high-fidelity "Map" of DeFi risk, integrating live DexScreener charts and weighted signal breakdowns.
+
+![ARGUS Dashboard Preview](https://github.com/user-attachments/assets/your-placeholder-here)
+*Figure 1: Real-time risk analysis for a high-TVL pool.*
+
+---
+
 ## 🏗️ System Architecture
 
 The following diagram illustrates the unified data flow from on-chain events to the end-user dashboard and Telegram bot.

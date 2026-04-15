@@ -154,7 +154,7 @@ export default function Dashboard() {
                            </div>
                            <div className="text-left">
                              <div className="text-[10px] font-bold text-muted uppercase tracking-widest">Liquidity</div>
-                             <div className="font-mono text-sm tracking-tighter text-secondary">${(selectedProtocol.market_trends.liquidity / 1000000).toFixed(1)}M</div>
+                             <div className="font-mono text-sm tracking-tighter text-secondary">${(selectedProtocol.market_trends.liquidityUsd / 1000000).toFixed(1)}M</div>
                            </div>
                          </div>
                        )}
@@ -232,7 +232,7 @@ function ProtocolCard({ protocol, onClick }: { protocol: ProtocolScore, onClick:
               <div className="text-[10px] font-bold text-muted uppercase tracking-widest">24H VOL</div>
               <div className="font-mono text-sm text-secondary">${(protocol.market_trends.volume24h / 1000000).toFixed(1)}M</div>
               <div className="text-[10px] font-bold text-muted uppercase tracking-widest mt-2">LIQUIDITY</div>
-              <div className="font-mono text-sm">{protocol.tvl_formatted}</div>
+              <div className="font-mono text-sm">${(protocol.market_trends.liquidityUsd / 1000000).toFixed(1)}M</div>
             </>
           ) : (
             <>
