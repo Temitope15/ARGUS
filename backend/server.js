@@ -401,7 +401,6 @@ async function bootstrap() {
       logger.info(`🤖 Telegram: ${process.env.TELEGRAM_BOT_TOKEN ? 'ACTIVE' : 'DISABLED'}`);
       logger.info(`📊 Tokens: ${monitored}`);
       logger.info(`🔗 Pairs: ${pairs}`);
-      logger.info(`🌍 CORS: Enabled for all origins`);
       logger.info('══════════════════════════════════════════');
     });
 
