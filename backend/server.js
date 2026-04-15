@@ -19,6 +19,7 @@ import swapHandler from './contagion-shield/src/websocket/handlers/swapHandler.j
 import priceHandler from './contagion-shield/src/websocket/handlers/priceHandler.js';
 import pollManager from './contagion-shield/src/poller/pollManager.js';
 import pairDiscoveryPoller from './contagion-shield/src/poller/pairDiscoveryPoller.js';
+import tvlPoller from './contagion-shield/src/poller/tvlPoller.js';
 import signalRoutes from './contagion-shield/src/api/routes/signals.js'; 
 import { createLogger as createP1Logger } from './contagion-shield/src/utils/logger.js';
 
@@ -152,6 +153,7 @@ async function bootstrap() {
     swapHandler.init();
     priceHandler.init();
     await pairDiscoveryPoller.run();
+    await tvlPoller.run();
     await wsManager.connect();
     await pollManager.start();
 
