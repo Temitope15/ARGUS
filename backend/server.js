@@ -10,7 +10,6 @@ import fs from 'fs';
 
 // Phase 1 imports
 import p1Config from './contagion-shield/src/config/index.js';
-import { protocols as p1Protocols } from './contagion-shield/src/config/protocols.js';
 import { initDb as initP1Db } from './contagion-shield/src/database/db.js';
 import signalRepo from './contagion-shield/src/database/repositories/signalRepo.js';
 import wsManager from './contagion-shield/src/websocket/wsManager.js';

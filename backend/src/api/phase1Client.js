@@ -1,56 +1,39 @@
 /**
- * Phase 1 Client - Consumes signals and health data from Phase 1 REST server.
- * All methods are error-tolerant — they return safe defaults instead of throwing.
+ * Phase 1 Client - Consumes signals and health data.
+ * REFACTORED: Now calls internal repositories directly instead of via REST.
+ * This ensures reliability in a unified server architecture.
  */
-import axios from 'axios';
+import signalRepo from '../../contagion-shield/src/database/repositories/signalRepo.js';
+import liquidityRepo from '../../contagion-shield/src/database/repositories/liquidityRepo.js';
+import pairRepo from '../../contagion-shield/src/database/repositories/pairRepo.js';
+import swapRepo from '../../contagion-shield/src/database/repositories/swapRepo.js';
+import config from '../../contagion-shield/src/config/index.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('phase1-client');
 
 class Phase1Client {
-  constructor() {
-    const port = process.env.PORT || '3001';
-    this.baseUrl = process.env.PHASE1_API_URL || `http://localhost:${port}`;
-    this.instance = axios.create({
-      baseURL: this.baseUrl,
-      timeout: 8000
-    });
-  }
-
   /**
-   * Safe request wrapper — catches all errors and returns null.
-   */
-  async _safeGet(path, params) {
-    try {
-      const response = await this.instance.get(path, { params });
-      return response.data;
-    } catch (error) {
-      logger.warn({ path, error: error.message }, 'Phase 1 request failed');
-      return null;
-    }
-  }
-
-  /**
-   * Pings Phase 1 health endpoint.
+   * Pings Phase 1 health status (now always true as it's internal).
    * @returns {Promise<boolean>}
    */
   async checkHealth() {
-    try {
-      const response = await this.instance.get('/api/health');
-      return response.data?.status === 'ok';
-    } catch (error) {
-      logger.error({ error: error.message }, 'Phase 1 is unreachable');
-      return false;
-    }
+    return true;
   }
 
   /**
    * Fetches net liquidity flow for a pair.
-   * @returns {Promise<Object|null>} { removeLiquidityCount, addLiquidityCount, drainRatio, events }
+   * @returns {Promise<Object>}
    */
   async getLiquidityDrain(chain, pairAddress, windowMinutes = 60) {
-    const data = await this._safeGet('/api/signals/liquidity-drain', { chain, pairAddress, windowMinutes });
-    return data || { removeLiquidityCount: 0, addLiquidityCount: 0, drainRatio: 0, events: [] };
+    try {
+      const windowMs = (parseInt(windowMinutes) || config.DEFAULTS.WINDOW_MINUTES) * 60 * 1000;
+      const stats = await liquidityRepo.getLiquidityDrainStats(chain, pairAddress, windowMs);
+      return stats || { removeLiquidityCount: 0, addLiquidityCount: 0, drainRatio: 0, events: [] };
+    } catch (err) {
+      logger.error({ pairAddress, error: err.message }, 'Failed to get liquidity drain');
+      return { removeLiquidityCount: 0, addLiquidityCount: 0, drainRatio: 0, events: [] };
+    }
   }
 
   /**
@@ -58,8 +41,14 @@ class Phase1Client {
    * @returns {Promise<Array>}
    */
   async getTvlHistory(chain, tokenAddress, limit = 90) {
-    const data = await this._safeGet('/api/signals/tvl-history', { chain, tokenAddress, limit });
-    return Array.isArray(data) ? data : [];
+    try {
+      const queryLimit = parseInt(limit) || config.DEFAULTS.QUERY_LIMIT;
+      const history = await signalRepo.getPriceHistory(chain, tokenAddress, queryLimit);
+      return Array.isArray(history) ? history : [];
+    } catch (err) {
+      logger.error({ tokenAddress, error: err.message }, 'Failed to get TVL history');
+      return [];
+    }
   }
 
   /**
@@ -67,7 +56,12 @@ class Phase1Client {
    * @returns {Promise<Object|null>}
    */
   async getPairHealth(chain, pairAddress) {
-    return await this._safeGet('/api/signals/pair-health', { chain, pairAddress });
+    try {
+      return await pairRepo.getLatestPairSnapshot(chain, pairAddress);
+    } catch (err) {
+      logger.error({ pairAddress, error: err.message }, 'Failed to get pair health');
+      return null;
+    }
   }
 
   /**
@@ -75,8 +69,29 @@ class Phase1Client {
    * @returns {Promise<Object|null>}
    */
   async getPriceDeviation(chain, tokenAddress, windowMinutes = 60) {
-    const data = await this._safeGet('/api/signals/price-deviation', { chain, tokenAddress, windowMinutes });
-    return data || { error: 'No data', currentPrice: 0, baselinePrice: 0, deviationPercent: 0 };
+    try {
+      const windowMs = (parseInt(windowMinutes) || config.DEFAULTS.WINDOW_MINUTES) * 60 * 1000;
+      const history = await signalRepo.getPriceHistory(chain, tokenAddress, 100);
+      const baseline = await signalRepo.getBaselinePrice(chain, tokenAddress, windowMs);
+      
+      if (!history.length || !baseline) return { error: 'No data', currentPrice: 0, baselinePrice: 0, deviationPercent: 0 };
+      
+      const currentPrice = history[0].price_usd;
+      const baselinePrice = baseline.price_usd;
+      const deviationPercent = ((currentPrice - baselinePrice) / baselinePrice) * 100;
+
+      return {
+        tokenAddress,
+        symbol: history[0].symbol,
+        currentPrice,
+        baselinePrice,
+        deviationPercent,
+        snapshots: history
+      };
+    } catch (err) {
+      logger.error({ tokenAddress, error: err.message }, 'Failed to get price deviation');
+      return { error: 'Error', currentPrice: 0, baselinePrice: 0, deviationPercent: 0 };
+    }
   }
 
   /**
@@ -84,7 +99,13 @@ class Phase1Client {
    * @returns {Promise<Object|null>}
    */
   async getSellPressure(chain, pairAddress, windowMinutes = 60) {
-    return await this._safeGet('/api/signals/sell-pressure', { chain, pairAddress, windowMinutes });
+    try {
+      const windowMs = (parseInt(windowMinutes) || config.DEFAULTS.WINDOW_MINUTES) * 60 * 1000;
+      return await swapRepo.getSellPressureStats(chain, pairAddress, windowMs);
+    } catch (err) {
+      logger.error({ pairAddress, error: err.message }, 'Failed to get sell pressure');
+      return null;
+    }
   }
 
   /**
@@ -92,7 +113,12 @@ class Phase1Client {
    * @returns {Promise<Object|null>}
    */
   async getContractRisk(chain, tokenAddress) {
-    return await this._safeGet('/api/signals/contract-risk', { chain, tokenAddress });
+    try {
+      return await signalRepo.getLatestContractRisk(chain, tokenAddress);
+    } catch (err) {
+      logger.error({ tokenAddress, error: err.message }, 'Failed to get contract risk');
+      return null;
+    }
   }
 }
 

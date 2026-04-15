@@ -8,7 +8,7 @@ import aveClient from '../api/aveClient.js';
 import eventNormalizer from '../normalizer/eventNormalizer.js';
 import tvlRepo from '../database/repositories/tvlRepo.js';
 import signalRepo from '../database/repositories/signalRepo.js';
-import { protocols } from '../config/protocols.js';
+import { MONITORED_PROTOCOLS as protocols } from '../../../src/config/protocols.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('risk-poller');

@@ -56,4 +56,6 @@ export const MONITORED_PROTOCOLS = [
   },
 ];
 
+export const getTokenIds = () => MONITORED_PROTOCOLS.map(p => p.tokenId);
+
 export default MONITORED_PROTOCOLS;

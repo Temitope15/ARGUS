@@ -8,7 +8,7 @@
 import aveClient from '../api/aveClient.js';
 import eventNormalizer from '../normalizer/eventNormalizer.js';
 import tvlRepo from '../database/repositories/tvlRepo.js';
-import { getTokenIds } from '../config/protocols.js';
+import { getTokenIds } from '../../../src/config/protocols.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('tvl-poller');

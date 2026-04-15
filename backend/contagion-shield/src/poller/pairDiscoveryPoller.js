@@ -7,7 +7,7 @@
  * The `pair` field is the pair address (not `pair_address`).
  */
 import aveClient from '../api/aveClient.js';
-import { protocols } from '../config/protocols.js';
+import { MONITORED_PROTOCOLS as protocols } from '../../../src/config/protocols.js';
 import { createLogger } from '../utils/logger.js';
 import wsManager from '../websocket/wsManager.js';
 
