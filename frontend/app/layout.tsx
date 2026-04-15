@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ARGUS — DeFi Contagion Shield",
-  description: "Real-time on-chain risk detection and contagion prevention. Know before the crash.",
+  title: "ARGUS — Real-time DeFi Monitor",
+  description: "Real-time DeFi chain movement monitoring. Get whale alerts and liquidity updates on Telegram.",
   openGraph: {
-    title: "ARGUS — DeFi Contagion Shield",
-    description: "Know before the crash. Real-time monitoring for sophisticated DeFi investors.",
+    title: "ARGUS — Real-time DeFi Monitor",
+    description: "Real-time DeFi chain movement monitoring. Get whale alerts and liquidity updates on Telegram.",
     images: [{ url: "/og.png", width: 1200, height: 630 }],
   },
 };

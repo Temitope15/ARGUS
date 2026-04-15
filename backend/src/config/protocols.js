@@ -1,48 +1,59 @@
 /**
  * Monitored Protocols Configuration.
+ * Seeded with real, active pools on mainnet with high TVL.
  */
 
 export const MONITORED_PROTOCOLS = [
   {
-    id: "curve-3pool-eth",
-    name: "Curve 3Pool",
-    chain: "eth",
-    tokenId: "0x6b175474e89094c44da98b954eedeac495271d0f-eth", // DAI
-    pairId: "0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7-eth",
+    id: 'curve-3pool-eth',
+    name: 'Curve 3Pool',
+    chain: 'eth',
+    tokenId: '0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490-eth',  // 3CRV token
+    pairId:  '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7-eth',  // Curve 3Pool pair
+    dexScreenerPair: '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7',
+    dexScreenerChain: 'ethereum',
     stablecoinTokenIds: ["0x6b175474e89094c44da98b954eedeac495271d0f-eth", "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48-eth"]
   },
   {
-    id: "pancakeswap-v3-bsc",
-    name: "PancakeSwap V3",
-    chain: "bsc",
-    tokenId: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c-bsc", // WBNB
-    pairId: "0x133ec93b9d0208d9173bc095c7a52660a92d83e2-bsc",
-    stablecoinTokenIds: ["0x55d398326f99059ff775485246999027b3197955-bsc"] // USDT
-  },
-  {
-    id: "aave-v3-eth",
-    name: "Aave V3",
-    chain: "eth",
-    tokenId: "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9-eth", // AAVE
-    pairId: "0x309fcde75003c2faeb9f31ab2c10b1062f8b50e6-eth", 
+    id: 'uniswap-eth-usdc',
+    name: 'Uniswap ETH/USDC',
+    chain: 'eth',
+    tokenId: '0xA0b86991c6218b36c1d19D4a2e9Eb0CE3606eB48-eth',  // USDC
+    pairId:  '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640-eth',  // Uniswap V3 ETH/USDC 0.05%
+    dexScreenerPair: '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640',
+    dexScreenerChain: 'ethereum',
     stablecoinTokenIds: ["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48-eth"]
   },
   {
-    id: "uniswap-v3-eth",
-    name: "Uniswap V3",
-    chain: "eth",
-    tokenId: "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984-eth", // UNI
-    pairId: "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8-eth",
-    stablecoinTokenIds: ["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48-eth"]
+    id: 'pancake-bnb-usdt',
+    name: 'PancakeSwap BNB/USDT',
+    chain: 'bsc',
+    tokenId: '0x55d398326f99059fF775485246999027B3197955-bsc',  // BSC USDT
+    pairId:  '0x16b9a82891338f9bA80E2D6970FdDa79D1eb0daE-bsc',  // PCS BNB/USDT
+    dexScreenerPair: '0x16b9a82891338f9bA80E2D6970FdDa79D1eb0daE',
+    dexScreenerChain: 'bsc',
+    stablecoinTokenIds: ["0x55d398326f99059ff775485246999027b3197955-bsc"]
   },
   {
-    id: "compound-v3-eth",
-    name: "Compound V3",
-    chain: "eth",
-    tokenId: "0xc00e94Cb662C3520282E6f5717214004A7f26888-eth", // COMP
-    pairId: "0xcf5bd7bd9799cd7f4f61f71a06708dd83dc7ab0a-eth",
-    stablecoinTokenIds: ["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48-eth"]
-  }
+    id: 'raydium-sol-usdc',
+    name: 'Raydium SOL/USDC',
+    chain: 'solana',
+    tokenId: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v-solana',  // USDC on Solana
+    pairId:  'HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ-solana',  // Raydium SOL/USDC
+    dexScreenerPair: 'HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ',
+    dexScreenerChain: 'solana',
+    stablecoinTokenIds: ["EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v-solana"]
+  },
+  {
+    id: 'orca-sol-usdt',
+    name: 'Orca SOL/USDT',
+    chain: 'solana',
+    tokenId: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB-solana',  // USDT on Solana
+    pairId:  'Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE-solana',  // Orca SOL/USDT
+    dexScreenerPair: 'Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE',
+    dexScreenerChain: 'solana',
+    stablecoinTokenIds: ["Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB-solana"]
+  },
 ];
 
 export default MONITORED_PROTOCOLS;

@@ -2,83 +2,95 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { ProtocolScore, SignalEvent } from '../lib/mockData';
 
-// Singleton socket instance to avoid StrictMode double-mounting connections and XHR polling aborts
+export type ProtocolScore = {
+  id: string;
+  name: string;
+  chain: string;
+  score: number;
+  alert_level: 'GREEN' | 'YELLOW' | 'ORANGE' | 'RED';
+  tvl_usd: number;
+  tvl_formatted: string;
+  price_change_1h: number;
+  signals: Record<string, { pts: number, max: number, detail?: string }>;
+  last_event?: string;
+  tvl_history?: number[];
+};
+
+export type SignalEvent = {
+  id: string;
+  timestamp: number;
+  time_ago: string;
+  protocol_name: string;
+  event_type: 'WHALE_ENTRY' | 'LP_DRAIN' | 'DEPEG' | 'RISK_SPIKE' | 'SWAP';
+  badge_color: string;
+  title: string;
+  description: string;
+  wallet?: string;
+  wallet_full?: string;
+  amount_usd?: number;
+  chain?: string;
+};
+
 let globalSocket: Socket | null = null;
 
 export function useArgusSocket() {
   const [scores, setScores] = useState<ProtocolScore[]>([]);
   const [events, setEvents] = useState<SignalEvent[]>([]);
-  const [status, setStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
+  const [stats, setStats] = useState<any>(null);
+  const [status, setStatus] = useState<'connected' | 'reconnecting' | 'disconnected'>('reconnecting');
   const isInitialized = useRef<boolean>(false);
 
   useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3002';
-    const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
-
-    if (isMockMode) {
-      setStatus('connected');
-      return;
-    }
+    const url = process.env.NEXT_PUBLIC_API_URL || 'https://argus-backend-tkgz.onrender.com';
 
     if (!isInitialized.current) {
-        // Fetch initial scores from REST API so we don't present an empty screen while waiting for the next WS broadcast
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || url;
-        fetch(`${apiUrl}/api/scores/latest`)
+        // Initial fetch
+        fetch(`${url}/api/protocols/scores`)
           .then(res => res.json())
           .then(data => {
-            if (data && data.scores) {
-              setScores(prev => prev.length === 0 ? data.scores : prev);
-            }
+            if (data && data.protocols) setScores(data.protocols);
           })
-          .catch(err => console.error('Failed to fetch initial scores:', err));
+          .catch(err => console.error('Initial scores fetch failed:', err));
+        
+        fetch(`${url}/api/stats`)
+          .then(res => res.json())
+          .then(data => setStats(data))
+          .catch(err => console.error('Initial stats fetch failed:', err));
+          
         isInitialized.current = true;
     }
 
     if (!globalSocket) {
       globalSocket = io(url, {
-        transports: ['websocket', 'polling'], // Prefer websockets directly to avoid Next.js StrictMode NS_BINDING_ABORTED on XHR
-        withCredentials: false,
+        transports: ['websocket'],
         reconnectionAttempts: Infinity,
-        reconnectionDelay: 2000,
-        timeout: 10000,
       });
     }
 
     const socket = globalSocket;
+    if (socket.connected) setStatus('connected');
 
-    let isMounted = true;
-
-    // Immediately sync status
-    if (socket.connected) {
-      setStatus('connected');
-    }
-
-    const onConnect = () => {
-      console.log('Argus Socket Connected');
-      isMounted && setStatus('connected');
-    };
-    const onDisconnect = () => isMounted && setStatus('disconnected');
-    const onConnectError = () => isMounted && setStatus('connecting');
-    const onScoresUpdated = (data: { scores: ProtocolScore[] }) => isMounted && setScores(data.scores);
-    const onSignalEvent = (event: SignalEvent) => isMounted && setEvents(prev => [event, ...prev].slice(0, 50));
+    const onConnect = () => setStatus('connected');
+    const onDisconnect = () => setStatus('reconnecting');
+    const onScoresUpdate = (data: { protocols: ProtocolScore[] }) => setScores(data.protocols);
+    const onFeedUpdate = (data: { events: SignalEvent[] }) => setEvents(prev => [...data.events, ...prev].slice(0, 50));
+    const onStatsUpdate = (data: any) => setStats(data);
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
-    socket.on('connect_error', onConnectError);
-    socket.on('scores_updated', onScoresUpdated);
-    socket.on('signal_event', onSignalEvent);
+    socket.on('scores_update', onScoresUpdate);
+    socket.on('feed_update', onFeedUpdate);
+    socket.on('stats_update', onStatsUpdate);
 
     return () => {
-      isMounted = false;
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
-      socket.off('connect_error', onConnectError);
-      socket.off('scores_updated', onScoresUpdated);
-      socket.off('signal_event', onSignalEvent);
+      socket.off('scores_update', onScoresUpdate);
+      socket.off('feed_update', onFeedUpdate);
+      socket.off('stats_update', onStatsUpdate);
     };
   }, []);
 
-  return { scores, events, status };
+  return { scores, events, stats, status };
 }

@@ -1,11 +1,10 @@
 /**
- * Ecosystem Report - Sends periodic portfolio + risk summary to users via Telegram.
+ * Ecosystem Report - Sends periodic risk summary to all subscribers via Telegram.
  * Runs every 30 minutes.
  */
-import {
-  getUsersWithTelegram, getAllLatestScores,
-  getUserPortfolioValue, getPositions, getWallets
-} from '../database/phase2Db.js';
+import * as db from '../database/phase2Db.js';
+import { broadcastAlert } from '../alerts/telegramBot.js';
+import { MONITORED_PROTOCOLS } from '../config/protocols.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('tasks/ecosystem-report');
@@ -13,13 +12,11 @@ const logger = createLogger('tasks/ecosystem-report');
 const REPORT_INTERVAL_MS = (parseInt(process.env.REPORT_INTERVAL_MINUTES) || 30) * 60 * 1000;
 
 let reportTimer = null;
-let telegramBot = null;
 
 /**
  * Initialize the ecosystem report scheduler.
  */
-export function initEcosystemReport(bot) {
-  telegramBot = bot;
+export function initEcosystemReport() {
   reportTimer = setInterval(sendEcosystemReports, REPORT_INTERVAL_MS);
   logger.info({ intervalMs: REPORT_INTERVAL_MS }, 'Ecosystem report scheduler started');
 }
@@ -32,77 +29,52 @@ export function stopEcosystemReport() {
 }
 
 /**
- * Sends ecosystem reports to all eligible users.
+ * Sends ecosystem reports to all subscribers.
  */
 export async function sendEcosystemReports() {
   try {
-    if (!telegramBot || !telegramBot.bot) return;
+    const scores = await db.getAllLatestScores();
+    const stats = await db.getStats();
 
-    const users = await getUsersWithTelegram();
-    const scores = await getAllLatestScores();
+    const message = formatEcosystemReport(scores, stats);
 
-    for (const user of users) {
-      try {
-        const wallets = await getWallets(user.id);
-        if (!wallets || wallets.length === 0) continue;
-        
-        const portfolio = await getUserPortfolioValue(user.id);
-        if (portfolio.totalValueUsd < 1) continue;
-
-        const openPositions = await getPositions(user.id, 'open');
-        const message = formatEcosystemReport(user, scores, portfolio, openPositions);
-
-        await telegramBot.bot.sendMessage(user.telegram_id, message, {
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [[
-              { text: '📊 Open Dashboard', url: `${process.env.FRONTEND_URL || 'https://argus-backend-tkgz.onrender.com'}/dashboard` }
-            ]]
-          }
-        });
-      } catch (userErr) {
-        logger.warn({ telegramId: user.telegram_id, error: userErr.message }, 'Failed to send report to user');
+    await broadcastAlert(message, {
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '📊 Open Dashboard', url: `${process.env.RENDER_URL || process.env.FRONTEND_URL || 'https://argus-shield.com'}/dashboard` }
+        ]]
       }
-    }
+    });
 
-    logger.info({ userCount: users.length }, 'Ecosystem reports sent');
+    logger.info('Ecosystem reports sent to all subscribers');
   } catch (error) {
     logger.error({ error: error.message }, 'Failed to send ecosystem reports');
   }
 }
 
-function formatEcosystemReport(user, scores, portfolio, openPositions) {
+function formatEcosystemReport(scores, stats) {
   const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZoneName: 'short' });
 
-  const emoji = { GREEN: '🟢', YELLOW: '🟡', ORANGE: '🟠', RED: '🔴' };
+  const emojiMap = { GREEN: '🟢', YELLOW: '🟡', ORANGE: '🟠', RED: '🔴' };
 
   let report = `📡 *ARGUS Report — ${timeStr}*\n\n`;
 
-  // Protocol scores
-  for (const s of scores) {
-    const e = emoji[s.alert_level] || '❓';
-    const note = s.alert_level === 'RED' ? ' ⚡ CONTAGION ACTIVE' : '';
-    report += `${e} *${s.protocol_id}*: ${s.score}/100 — ${s.alert_level}${note}\n`;
-  }
-
-  // Portfolio summary
-  const pnlSign = portfolio.totalPnlUsd >= 0 ? '+' : '';
-  const pnlEmoji = portfolio.totalPnlUsd >= 0 ? '📈' : '📉';
-
-  report += `\nYour portfolio: $${portfolio.totalValueUsd.toFixed(2)} | `;
-  report += `P&L: ${pnlSign}$${portfolio.totalPnlUsd.toFixed(2)} (${pnlSign}${portfolio.totalPnlPct.toFixed(1)}%) ${pnlEmoji}\n`;
-
-  // Open positions
-  if (openPositions.length > 0) {
-    report += `\nOpen positions: ${openPositions.length}\n`;
-    report += `━━━━━━━━━━━━━━━━━━━━━\n`;
-    for (const pos of openPositions.slice(0, 5)) {
-      const posSign = pos.pnl_usd >= 0 ? '+' : '';
-      const posEmoji = pos.pnl_usd >= 0 ? '📈' : '📉';
-      report += `${pos.to_asset}: ${posSign}$${pos.pnl_usd.toFixed(2)} (${posSign}${pos.pnl_pct.toFixed(1)}%) ${posEmoji}\n`;
+  let activeAlerts = false;
+  for (const protocol of MONITORED_PROTOCOLS) {
+    const s = scores.find(score => score.protocol_id === protocol.id);
+    if (s) {
+      const e = emojiMap[s.alert_level] || '❓';
+      const warning = s.score > 30 ? ' ← watch this' : '';
+      report += `${e} *${protocol.name}* — ${s.score}/100${warning}\n`;
+      if (s.alert_level !== 'GREEN') activeAlerts = true;
+    } else {
+      report += `⚪ *${protocol.name}* — Pending poll...\n`;
     }
   }
+
+  report += `\n${activeAlerts ? '⚠️ *Active risks detected.*' : '*No active alerts.* All protocols within normal range.'}\n\n`;
+  report += `Monitoring ${MONITORED_PROTOCOLS.length} protocols | ${stats.whaleCount} whale moves today`;
 
   return report;
 }

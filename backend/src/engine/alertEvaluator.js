@@ -2,8 +2,7 @@
  * Alert Evaluator - Detects score changes and triggers alert broadcasts/notifications.
  */
 import db from '../database/phase2Db.js';
-import telegramBot from '../alerts/telegramBot.js';
-import tradeExecutor from './tradeExecutor.js';
+import { broadcastAlert } from '../alerts/telegramBot.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('engine/alert-evaluator');
@@ -14,72 +13,57 @@ const logger = createLogger('engine/alert-evaluator');
 export async function evaluateAlerts(protocol, newScoreObj) {
   try {
     const protocolId = protocol.id;
-    const { score, alertLevel, lowConfidence, contagionMultiplierApplied } = newScoreObj;
+    const { score, alertLevel, contagionMultiplierApplied } = newScoreObj;
 
-    // 1. Get last alert status for this protocol
+    // 1. Get last alert status for this protocol from DB
     const result = await db.execute({
-      sql: `SELECT * FROM alerts 
+      sql: `SELECT * FROM scores 
             WHERE protocol_id = ? 
-            ORDER BY created_at DESC LIMIT 1`,
-      args: [protocolId]
+            AND id < (SELECT MAX(id) FROM scores WHERE protocol_id = ?)
+            ORDER BY computed_at DESC LIMIT 1`,
+      args: [protocolId, protocolId]
     });
-    const lastAlert = result.rows[0];
+    const lastScoreResult = result.rows[0];
 
-    const prevLevel = lastAlert ? lastAlert.alert_level : 'GREEN';
-    const prevScore = lastAlert ? lastAlert.score : 0;
+    const prevLevel = lastScoreResult ? lastScoreResult.alert_level : 'GREEN';
+    const prevScore = lastScoreResult ? lastScoreResult.score : 0;
+    const prevContagion = lastScoreResult ? !!lastScoreResult.contagion_multiplier_applied : false;
 
-    // 2. Logic to decide if we send a NEW message, EDIT an existing one, or ignore
-    let action = 'IGNORE';
-    
-    if (alertLevel !== prevLevel) {
-      if (isEscalation(prevLevel, alertLevel)) {
-        action = 'SEND_NEW';
-      } else if (isDowngrade(prevLevel, alertLevel)) {
-        action = 'SEND_RESOLVED';
-      }
-    } else if (Math.abs(score - prevScore) >= 10 && alertLevel !== 'GREEN') {
-      // Significant score change within same level
-      action = 'EDIT_EXISTING';
+    // 2. Determine if we should broadcast
+    let broadcastType = null;
+    let message = null;
+
+    if (levelRank[alertLevel] > levelRank[prevLevel]) {
+      broadcastType = 'escalation';
+      const colorIcon = alertLevel === 'RED' ? '🔴' : (alertLevel === 'ORANGE' ? '🟠' : '🟡');
+      message = `${colorIcon} *${alertLevel} — ${protocol.name} (${protocol.chain.toUpperCase()})*\n` +
+                `Score just crossed into ${alertLevel}: ${score}/100\n\n` +
+                `*What's happening:*\n` +
+                await buildSignalDetail(newScoreObj.signals) +
+                `\n\n_Watch closely. /status for details._`;
+    } else if (prevLevel !== 'GREEN' && alertLevel === 'GREEN') {
+      broadcastType = 'resolved';
+      message = `✅ *RESOLVED — ${protocol.name} (${protocol.chain.toUpperCase()})*\n\n` +
+                `Score returned to safe zone: ${score}/100 🟢\n\n` +
+                `The earlier warning signals have normalized.\n` +
+                `TVL has stabilized, LP activity returned to baseline.`;
+    } else if (contagionMultiplierApplied && !prevContagion) {
+      broadcastType = 'contagion';
+      message = `⚡ *CONTAGION SIGNAL ACTIVE*\n\n` +
+                `Systemic stress detected across multiple protocols including *${protocol.name}*.\n` +
+                `The risk multiplier has been applied. Stay alert.`;
     }
 
-    // Rate limiting: max 1 message/edit per 5 minutes per protocol (except escalation)
-    const fiveMinsAgo = Date.now() - (5 * 60 * 1000);
-    if (action !== 'SEND_NEW' && lastAlert && lastAlert.created_at > fiveMinsAgo) {
-      action = 'IGNORE';
-    }
-
-    if (action === 'IGNORE') return;
-
-    // 3. Execute alert action
-    const messageData = {
-      protocolName: protocol.name,
-      chain: protocol.chain,
-      score,
-      alertLevel,
-      previousLevel: prevLevel,
-      contagionMultiplierApplied,
-      signalResults: newScoreObj.signals
-    };
-
-    if (action === 'SEND_NEW') {
-      let tradeResult = null;
-      if (alertLevel === 'RED') {
-        const mode = process.env.AUTO_PROTECT_MODE || 'FULL_EXIT'; // Configurable user setting
-        const mockUserWallet = process.env.PROTECTED_WALLET || '0xDemoWalletAddress00000000000000';
-        tradeResult = await tradeExecutor.executeProtection(protocol, mode, mockUserWallet);
-        if (tradeResult && tradeResult.success) {
-           messageData.tradeAction = `Auto-Protection (${mode}) Engaged. Sim Tx: ${tradeResult.receipt.transactionHash.substring(0,10)}...`;
-        }
-      }
-
-      const messageId = await telegramBot.sendAlert(messageData);
-      await _recordAlert(protocolId, alertLevel, score, logMessage, messageId);
-    } else if (action === 'EDIT_EXISTING' && lastAlert?.telegram_message_id) {
-      await telegramBot.editAlert(lastAlert.telegram_message_id, messageData);
-      await _recordAlert(protocolId, alertLevel, score, 'Score update (Edit)', lastAlert.telegram_message_id);
-    } else if (action === 'SEND_RESOLVED') {
-      await telegramBot.sendResolved(messageData);
-      await _recordAlert(protocolId, alertLevel, score, 'Risk resolved/downgraded', null);
+    if (broadcastType && message) {
+      logger.info({ protocolId, type: broadcastType }, 'Triggering alert broadcast');
+      await broadcastAlert(message);
+      
+      // Record this broadcast in alerts table
+      await db.execute({
+        sql: `INSERT INTO alerts (protocol_id, alert_level, score, message, created_at, telegram_sent)
+              VALUES (?, ?, ?, ?, ?, 1)`,
+        args: [protocolId, alertLevel, score, message, Date.now()]
+      });
     }
 
   } catch (error) {
@@ -87,22 +71,17 @@ export async function evaluateAlerts(protocol, newScoreObj) {
   }
 }
 
-function isEscalation(oldLevel, newLevel) {
-  const levels = ['GREEN', 'YELLOW', 'ORANGE', 'RED'];
-  return levels.indexOf(newLevel) > levels.indexOf(oldLevel);
-}
+const levelRank = { GREEN: 0, YELLOW: 1, ORANGE: 2, RED: 3 };
 
-function isDowngrade(oldLevel, newLevel) {
-  const levels = ['GREEN', 'YELLOW', 'ORANGE', 'RED'];
-  return levels.indexOf(newLevel) < levels.indexOf(oldLevel);
-}
-
-async function _recordAlert(protocolId, level, score, msg, tgId) {
-  await db.execute({
-    sql: `INSERT INTO alerts (protocol_id, alert_level, score, message, telegram_message_id, telegram_sent, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    args: [protocolId, level, score, msg, tgId, tgId ? 1 : 0, Date.now()]
-  });
+async function buildSignalDetail(signals) {
+  let detail = "";
+  if (signals.tvlVelocityPts > 0) detail += `• TVL Velocity: ${signals.tvlVelocityPts} pts\n`;
+  if (signals.lpDrainRatePts > 0) detail += `• LP Drain: ${signals.lpDrainRatePts} pts\n`;
+  if (signals.stablecoinDepegPts > 0) detail += `• Depeg risk detected\n`;
+  if (signals.smartMoneyExitPts > 0) detail += `• Smart money movement detected\n`;
+  if (signals.aveRiskScorePts > 0) detail += `• AVE Risk Engine signal\n`;
+  
+  return detail || "• Minor volatility detected";
 }
 
 export default { evaluateAlerts };
