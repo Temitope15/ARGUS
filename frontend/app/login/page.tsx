@@ -6,6 +6,7 @@ import { Shield } from 'lucide-react';
 export default function LoginPage() {
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://argus-backend-tkgz.onrender.com';
   const botUsername = 'Argus_shield_bot';
+  const botId = process.env.NEXT_PUBLIC_TELEGRAM_BOT_ID;
 
   return (
     <div className="flex flex-col min-h-screen bg-void">
@@ -45,7 +46,7 @@ export default function LoginPage() {
           {/* Telegram Login Button */}
           <div className="mb-8">
             <a
-              href={`https://oauth.telegram.org/auth?bot_id=${botUsername.replace('@', '')}&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : backendUrl)}&request_access=write&return_to=${encodeURIComponent(backendUrl + '/auth/telegram/callback')}`}
+              href={`https://oauth.telegram.org/auth?bot_id=${botId}&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : backendUrl)}&request_access=write&return_to=${encodeURIComponent(backendUrl + '/auth/telegram/callback')}`}
               className="inline-flex items-center gap-3 bg-[#2AABEE] hover:bg-[#229ED9] text-white font-bold py-4 px-8 rounded-2xl transition-all text-lg shadow-lg shadow-[#2AABEE]/20 hover:shadow-[#2AABEE]/40 hover:scale-[1.02] active:scale-95"
             >
               <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">

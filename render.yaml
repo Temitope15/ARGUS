@@ -18,5 +18,17 @@ services:
         sync: false
       - key: DB_PATH
         value: ./data/argus.db
+      - key: TURSO_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: WHALE_ENTRY_THRESHOLD_USD
+        value: "50000"
+      - key: REPORT_INTERVAL_MINUTES
+        value: "30"
       - key: LOG_LEVEL
         value: info

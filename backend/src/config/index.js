@@ -6,7 +6,7 @@ const config = {
   env: process.env.NODE_ENV || 'development',
   logLevel: process.env.LOG_LEVEL || 'info',
   
-  phase1ApiUrl: process.env.PHASE1_API_URL || 'http://localhost:3001',
+  phase1ApiUrl: process.env.PHASE1_API_URL || `http://localhost:${process.env.PORT || '3001'}`,
   socketPort: parseInt(process.env.SOCKET_PORT || '3002'),
   
   dbPath: process.env.DB_PATH,
