@@ -61,11 +61,54 @@
     background-color: var(--accent);
     color: white;
     @apply px-6 py-3 rounded-lg font-bold transition-all hover:brightness-110 active:scale-95 flex items-center justify-center gap-2;
+    box-shadow: 0 0 20px var(--accent-dim);
   }
 
   .badge {
     @apply px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border;
   }
+
+  .glass {
+    background: rgba(14, 19, 24, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .glow-text {
+    text-shadow: 0 0 20px rgba(255, 122, 47, 0.5);
+  }
+}
+
+/* Premium Animations */
+@keyframes grid-move {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(40px); }
+}
+
+.grid-background {
+  background-image: linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+  animation: grid-move 4s linear infinite;
+}
+
+.scanner-line {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation: scan 4s ease-in-out infinite;
+  opacity: 0.5;
+}
+
+@keyframes scan {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
 }
 
 /* Custom Scrollbar */

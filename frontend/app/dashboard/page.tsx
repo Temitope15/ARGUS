@@ -54,6 +54,10 @@ export default function Dashboard() {
           </div>
           
           <div className="flex items-center gap-6">
+             <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/20 rounded-full">
+               <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></span>
+               <span className="text-[10px] font-black uppercase tracking-widest text-accent">Telegram Sentinel: Active</span>
+             </div>
              <div className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${status === 'connected' ? 'bg-green' : 'bg-orange animate-pulse'}`}></span>
                 <span className="text-[10px] font-bold uppercase tracking-tighter text-secondary">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function LandingPage() {
   const [stats, setStats] = useState({
@@ -29,124 +30,194 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-base text-primary overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-base text-primary overflow-x-hidden selection:bg-accent/30">
+      {/* Dynamic Background Grid */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute inset-0 grid-background opacity-20"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-base/50 to-base"></div>
+      </div>
+
       {/* Navigation */}
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-border bg-base/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center font-black text-black text-xl italic">A</div>
-          <span className="text-xl font-extrabold tracking-tighter uppercase">Argus</span>
+      <motion.nav 
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        className="flex items-center justify-between px-8 py-5 border-b border-white/5 bg-base/40 backdrop-blur-xl sticky top-0 z-50 glass"
+      >
+        <div className="flex items-center gap-3">
+          <motion.div 
+            whileHover={{ rotate: 15 }}
+            className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center font-black text-black text-2xl mb-1 italic shadow-lg shadow-accent/20"
+          >
+            A
+          </motion.div>
+          <span className="text-2xl font-black tracking-tighter uppercase italic">Argus</span>
         </div>
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="text-sm font-bold text-secondary hover:text-primary transition-colors">
-            Dashboard
+        <div className="flex items-center gap-6">
+          <Link href="/login" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted hover:text-white transition-all">
+            Investor Login
           </Link>
-          <a href="https://t.me/Argus_shield_bot" target="_blank" className="btn-primary py-2 px-4 text-sm scale-90">
-            Open Telegram
-          </a>
+          <Link href="/dashboard" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted hover:text-white transition-all">
+            Intelligence
+          </Link>
+          <motion.a 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            href="https://t.me/Argus_shield_bot" 
+            target="_blank" 
+            className="btn-primary py-2 px-6 text-[10px] uppercase tracking-[0.2em]"
+          >
+            Connect Bot
+          </motion.a>
         </div>
-      </nav>
+      </motion.nav>
 
       {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center text-center px-6 pt-32 pb-20 max-w-4xl mx-auto">
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-none mb-6 text-white uppercase italic">
-          DeFi moves fast.<br />
-          <span className="text-accent underline decoration-4 underline-offset-8">Collapses move faster.</span>
-        </h1>
-        <p className="text-xl md:text-2xl text-secondary mb-10 max-w-2xl font-medium">
-          ARGUS watches every pool, every whale, every signal — and tells you on Telegram before the news breaks.
-        </p>
-        <div className="flex flex-col items-center gap-4">
-          <a href="https://t.me/Argus_shield_bot" target="_blank" className="btn-primary text-xl px-10 py-5">
-            Start monitoring free →
-          </a>
-          <p className="text-sm text-muted font-bold tracking-wide">
-            No account. No signup. Just /start on Telegram.
+      <section className="relative flex flex-col items-center justify-center text-center px-6 pt-32 pb-24 max-w-5xl mx-auto z-10">
+        <div className="scanner-line"></div>
+        
+        <motion.div
+           initial={{ opacity: 0, y: 30 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ duration: 0.8 }}
+        >
+          <span className="badge bg-accent/10 text-accent border-accent/20 mb-8 inline-block animate-pulse">
+            System Status: Active Monitoring
+          </span>
+          <h1 className="text-6xl md:text-8xl font-black tracking-tight leading-[0.9] mb-8 text-white uppercase italic glow-text">
+            DeFi moves fast.<br />
+            <span className="text-accent underline decoration-8 underline-offset-[12px]">Collapses faster.</span>
+          </h1>
+          <p className="text-xl md:text-2xl text-secondary mb-12 max-w-3xl font-medium leading-relaxed">
+            ARGUS is the autonomous sentinel for the DeFi dark forest. We monitor every pool, 
+            every whale, and every depeg — alerting you <span className="text-white italic">before</span> the collapse.
           </p>
-        </div>
+          
+          <div className="flex flex-col md:flex-row items-center justify-center gap-6">
+            <motion.a 
+              whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(255, 122, 47, 0.4)" }}
+              whileTap={{ scale: 0.95 }}
+              href="https://t.me/Argus_shield_bot" 
+              target="_blank" 
+              className="btn-primary text-xl px-12 py-6 rounded-2xl"
+            >
+              Start Monitoring Free →
+            </motion.a>
+            <Link href="/dashboard" className="text-muted hover:text-white font-bold uppercase tracking-widest text-sm transition-all">
+              Explore Live Alerts Map
+            </Link>
+          </div>
+
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1, duration: 1 }}
+            className="mt-12 text-[10px] text-muted font-bold tracking-[0.3em] uppercase"
+          >
+            No account needed • No signup • Direct Telegram Access
+          </motion.div>
+        </motion.div>
       </section>
 
-      {/* Real Stats Bar */}
-      <section className="border-y border-border bg-surface/50 backdrop-blur-sm py-4">
-        <div className="max-w-6xl mx-auto px-6 flex flex-wrap justify-between items-center gap-6 font-mono text-sm tracking-widest text-secondary overflow-x-auto whitespace-nowrap">
-          <div className="flex items-center gap-2">
-            <span className="text-accent">●</span> Protocols monitored: <span className="text-primary">{stats.protocols_monitored}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-red">●</span> Alerts fired today: <span className="text-primary">{stats.alerts_fired_today}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-yellow">●</span> Whale moves detected: <span className="text-primary">{stats.whale_moves_detected}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-green">●</span> Active subscribers: <span className="text-primary">{stats.active_subscribers}</span>
-          </div>
+      {/* Live Stats Ticker */}
+      <motion.section 
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        className="border-y border-white/5 bg-surface/30 backdrop-blur-md py-6 relative z-10"
+      >
+        <div className="max-w-7xl mx-auto px-6 flex flex-wrap justify-between items-center gap-8 font-mono text-[10px] font-bold tracking-[0.2em] uppercase text-secondary">
+          <StatItem label="Protocols monitored" value={stats.protocols_monitored} color="accent" />
+          <StatItem label="Alerts fired today" value={stats.alerts_fired_today} color="red" />
+          <StatItem label="Whale moves detected" value={stats.whale_moves_detected} color="orange" />
+          <StatItem label="Active subscribers" value={stats.active_subscribers} color="green" />
         </div>
-      </section>
+      </motion.section>
 
       {/* Feature Section */}
-      <section className="max-w-6xl mx-auto px-6 py-32 grid md:grid-cols-3 gap-12">
-        <div className="card p-8">
-          <div className="text-4xl mb-6">👁️</div>
-          <h3 className="text-2xl font-bold mb-4 uppercase italic tracking-tight">Always watching</h3>
-          <p className="text-secondary leading-relaxed">
-            ARGUS monitors liquidity pools 24/7 — tracking TVL changes, whale movements, and stablecoin stability across every major DeFi protocol in real time.
-          </p>
-        </div>
-        <div className="card p-8">
-          <div className="text-4xl mb-6">⚡</div>
-          <h3 className="text-2xl font-bold mb-4 uppercase italic tracking-tight">Alerts before the crash</h3>
-          <p className="text-secondary leading-relaxed">
-            When a whale quietly removes $2M in liquidity, or a stablecoin starts losing its peg, ARGUS fires a Telegram alert — while everyone else is still asleep.
-          </p>
-        </div>
-        <div className="card p-8">
-          <div className="text-4xl mb-6">🛡️</div>
-          <h3 className="text-2xl font-bold mb-4 uppercase italic tracking-tight">A score you can act on</h3>
-          <p className="text-secondary leading-relaxed">
-            Every protocol gets a Contagion Score from 0 to 100. Green means safe. Red means move your money. Simple.
-          </p>
-        </div>
+      <section className="max-w-7xl mx-auto px-6 py-40 grid md:grid-cols-3 gap-8 relative z-10">
+        <FeatureCard 
+          emoji="👁️" 
+          title="Autonomous Surveillance" 
+          desc="Continuous monitoring of high-TVL pools, identifying liquidity drains and whale exits before they trigger panic."
+        />
+        <FeatureCard 
+          emoji="⚡" 
+          title="Instant Broadcast" 
+          desc="Risk escalations are pushed immediately via Telegram. Move your assets while everyone else is still reading the news."
+        />
+        <FeatureCard 
+          emoji="🛡️" 
+          title="Contagion Intelligence" 
+          desc="Unified scoring from 0-100 across 5 weighted risk vectors. Simple, actionable intelligence for a complex market."
+        />
       </section>
 
-      {/* How it Works */}
-      <section className="bg-surface/30 border-y border-border py-32 overflow-hidden">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-4xl font-extrabold mb-16 text-center italic tracking-tight uppercase">Mission Protocol</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 bg-border-bright rounded-full flex items-center justify-center font-bold text-xl mb-6">1</div>
-              <h4 className="text-xl font-bold mb-2">Open Telegram</h4>
-              <p className="text-secondary">Send /start to @Argus_shield_bot</p>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 bg-border-bright rounded-full flex items-center justify-center font-bold text-xl mb-6">2</div>
-              <h4 className="text-xl font-bold mb-2">Protocol Sync</h4>
-              <p className="text-secondary">ARGUS begins monitoring DeFi pools for you</p>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 bg-border-bright rounded-full flex items-center justify-center font-bold text-xl mb-6">3</div>
-              <h4 className="text-xl font-bold mb-2">Real-time Intel</h4>
-              <p className="text-secondary">When something moves — you hear about it first</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Bottom CTA */}
-      <section className="py-32 px-6 flex flex-col items-center text-center">
-        <div className="card p-12 max-w-4xl w-full border-accent/20 bg-accent/5">
-          <h2 className="text-3xl md:text-5xl font-extrabold mb-4 italic uppercase tracking-tight">The smoke detector for your DeFi money.</h2>
-          <p className="text-xl text-secondary mb-10">It's free. It's instant. It might save you thousands.</p>
-          <a href="https://t.me/Argus_shield_bot" target="_blank" className="btn-primary text-xl px-12 py-5 max-w-md mx-auto">
-            Open Telegram and start →
-          </a>
-        </div>
+      {/* Social Proof / Call to Action */}
+      <section className="py-40 px-6 flex flex-col items-center text-center relative z-10 overflow-hidden">
+        <motion.div 
+          whileInView={{ scale: [0.9, 1], opacity: [0, 1] }}
+          className="card p-16 md:p-24 max-w-5xl w-full border-accent/20 bg-accent/5 relative glass overflow-hidden"
+        >
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent to-transparent opacity-30"></div>
+          <h2 className="text-4xl md:text-6xl font-black mb-6 italic uppercase tracking-tighter leading-none glow-text">
+            The Smoke Detector<br/>for your DeFi Capital.
+          </h2>
+          <p className="text-xl text-secondary mb-12 font-medium">It's free. It's instant. It's institutional-grade intelligence.</p>
+          <motion.a 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            href="https://t.me/Argus_shield_bot" 
+            target="_blank" 
+            className="btn-primary text-xl px-16 py-6 inline-flex"
+          >
+            Deploy ARGUS Sentinel →
+          </motion.a>
+        </motion.div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-12 px-6 text-center text-muted font-mono text-xs uppercase tracking-widest">
-        &copy; 2024 ARGUS Intelligence Systems // On-chain Protection Layer
+      <footer className="border-t border-white/5 py-12 px-6 text-center text-muted font-mono text-[10px] uppercase tracking-[0.4em] z-10 bg-base">
+        &copy; 2024 ARGUS Intelligence Systems // On-chain Protection Layer // All Rites Reserved
       </footer>
     </div>
+  );
+}
+
+function StatItem({ label, value, color }: { label: string, value: number, color: string }) {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    let start = 0;
+    const end = value;
+    if (start === end) return;
+    
+    let timer = setInterval(() => {
+      start += Math.ceil((end - start) / 10);
+      setDisplayValue(start);
+      if (start >= end) clearInterval(timer);
+    }, 50);
+    
+    return () => clearInterval(timer);
+  }, [value]);
+
+  return (
+    <div className="flex items-center gap-3">
+      <span className={`w-2 h-2 rounded-full bg-${color}`}></span>
+      <span>{label}: <span className="text-white font-black">{displayValue.toLocaleString()}</span></span>
+    </div>
+  );
+}
+
+function FeatureCard({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
+  return (
+    <motion.div 
+      whileHover={{ y: -10, borderColor: 'var(--accent)' }}
+      className="card p-10 glass border-white/5 relative group h-full"
+    >
+      <div className="text-5xl mb-8 group-hover:scale-110 transition-transform">{emoji}</div>
+      <h3 className="text-2xl font-black mb-4 uppercase italic tracking-tighter glow-text">{title}</h3>
+      <p className="text-secondary leading-relaxed font-medium">
+        {desc}
+      </p>
+    </motion.div>
   );
 }

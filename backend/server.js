@@ -240,6 +240,36 @@ async function bootstrap() {
             }
           };
         });
+
+        // Trigger Telegram alerts for critical changes (ORANGE/RED)
+        cycleScores.forEach(async (s) => {
+          if (s.alertLevel === 'ORANGE' || s.alertLevel === 'RED') {
+            const icon = s.alertLevel === 'RED' ? '🔴' : '🟠';
+            const message = `${icon} *ARGUS RISK ALERT: ${s.protocolName}*\n\n` + 
+              `Risk Status: *${s.alertLevel}*\n` +
+              `Contagion Score: *${s.score}/100*\n\n` +
+              `⚠️ High priority on-chain movement detected. Check the intelligence dashboard for details.\n\n` +
+              `[View Analysis Map](https://argus-frontend-two.vercel.app/dashboard)`;
+            
+            await telegramBot.broadcastAlert(message);
+
+            // Also emit to the dashboard feed
+            io.emit('feed_update', {
+              events: [{
+                id: `alert-${s.protocolId}-${Date.now()}`,
+                timestamp: Date.now(),
+                time_ago: 'Just now',
+                protocol_name: s.protocolName,
+                event_type: 'RISK_ESCALATION',
+                badge_color: s.alertLevel === 'RED' ? 'red' : 'orange',
+                title: 'Risk Escalation',
+                description: `Critical alert: Health score dropped to ${s.score}/100`,
+                chain: s.chain
+              }]
+            });
+          }
+        });
+
         io.emit('scores_update', { protocols: latestScores, timestamp: Date.now() });
         const stats = await db.getStats();
         io.emit('stats_update', {
