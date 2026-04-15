@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useArgusSocket, ProtocolScore, SignalEvent } from '@/hooks/useArgusSocket';
-import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
+import { LineChart, Line, ResponsiveContainer, YAxis, XAxis } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Dashboard() {
   const { scores, events, stats, status } = useArgusSocket();
@@ -21,211 +22,262 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-base text-primary font-syne overflow-hidden">
+    <div className="flex h-screen bg-base text-primary overflow-hidden selection:bg-cyan/30">
+      {/* Immersive Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="mesh-background opacity-50"></div>
+        <div className="grid-perspective opacity-10"></div>
+      </div>
+
       {/* Sidebar Navigation */}
-      <aside className="w-16 md:w-20 border-r border-border bg-surface flex flex-col items-center py-8 z-50">
-        <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center font-black text-black text-2xl mb-12 italic">A</div>
+      <aside className="w-20 md:w-24 border-r border-white/5 bg-surface/30 backdrop-blur-2xl flex flex-col items-center py-10 z-[100] relative">
+        <div className="w-12 h-12 bg-gradient-to-tr from-cyan to-blue rounded-2xl flex items-center justify-center font-black text-white text-2xl mb-16 shadow-lg shadow-cyan/20 cursor-pointer hover:rotate-12 transition-transform">
+          A
+        </div>
         
-        <nav className="flex flex-col gap-8 flex-1">
-          <button onClick={() => setActiveTab('risk')} className={`p-3 rounded-xl transition-all ${activeTab === 'risk' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-muted hover:text-secondary'}`}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-          </button>
-          <button onClick={() => setActiveTab('feed')} className={`p-3 rounded-xl transition-all ${activeTab === 'feed' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-muted hover:text-secondary'}`}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-          </button>
+        <nav className="flex flex-col gap-10">
+          <SidebarLink 
+            active={activeTab === 'risk'} 
+            onClick={() => setActiveTab('risk')} 
+            icon={<RiskIcon />} 
+            label="RISK"
+          />
+          <SidebarLink 
+            active={activeTab === 'feed'} 
+            onClick={() => setActiveTab('feed')} 
+            icon={<FeedIcon />} 
+            label="FEED"
+          />
         </nav>
 
-        <div className="mt-auto p-4 flex flex-col items-center gap-4">
-           {/* Status Dot */}
-           <div className={`w-3 h-3 rounded-full ${status === 'connected' ? 'bg-green' : 'bg-red animate-pulse'}`} title={status}></div>
+        <div className="mt-auto p-4 flex flex-col items-center gap-6">
+           {/* Status Indicator */}
+           <div className="relative group">
+             <div className={`w-3 h-3 rounded-full ${status === 'connected' ? 'bg-cyan shadow-[0_0_15px_var(--cyan)]' : 'bg-red animate-pulse shadow-[0_0_15px_rgba(255,59,92,0.5)]'}`}></div>
+             <div className="absolute left-full ml-4 px-3 py-1 bg-elevated rounded glass text-[8px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+               System: {status}
+             </div>
+           </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 bg-base overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 bg-transparent overflow-hidden relative z-10">
         {/* Top Header */}
-        <header className="h-16 border-b border-border bg-surface/50 backdrop-blur-md flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center gap-4">
-            <h2 className="text-sm font-bold tracking-widest uppercase text-secondary">
+        <header className="h-20 border-b border-white/5 bg-surface/20 backdrop-blur-xl flex items-center justify-between px-10 shrink-0">
+          <div className="flex items-center gap-6">
+            <h2 className="text-sm font-black tracking-[0.2em] uppercase text-secondary">
               {activeTab === 'risk' ? 'Risk Intelligence Map' : activeTab === 'feed' ? 'Live On-Chain Feed' : `Protocol Analysis: ${selectedProtocol?.name}`}
             </h2>
-            <div className="h-4 w-px bg-border"></div>
-            <span className="font-mono text-xs text-muted tracking-widest">{currentTime.toLocaleTimeString()} UTC</span>
+            <div className="h-6 w-px bg-white/5"></div>
+            <div className="font-mono text-[10px] text-muted tracking-widest bg-white/5 px-3 py-1 rounded-full">{currentTime.toLocaleTimeString()} UTC</div>
           </div>
           
-          <div className="flex items-center gap-6">
-             <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/20 rounded-full">
-               <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></span>
-               <span className="text-[10px] font-black uppercase tracking-widest text-accent">Telegram Sentinel: Active</span>
+          <div className="flex items-center gap-8">
+             <div className="hidden lg:flex items-center gap-3 px-4 py-2 bg-cyan/5 border border-cyan/10 rounded-full">
+               <span className="w-2 h-2 rounded-full bg-cyan animate-pulse shadow-[0_0_10px_var(--cyan)]"></span>
+               <span className="text-[10px] font-black uppercase tracking-widest text-cyan">Sentinel Defense v2.4</span>
              </div>
-             <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${status === 'connected' ? 'bg-green' : 'bg-orange animate-pulse'}`}></span>
-                <span className="text-[10px] font-bold uppercase tracking-tighter text-secondary">
-                  {status === 'connected' ? 'Live System' : 'Reconnecting...'}
-                </span>
-             </div>
-             <button onClick={() => window.location.href = '/'} className="text-[10px] font-bold uppercase tracking-tighter text-muted hover:text-primary transition-colors">Terminate Session</button>
+             <button 
+                onClick={() => window.location.href = '/'} 
+                className="text-[10px] font-black uppercase tracking-[0.2em] text-muted hover:text-white transition-all hover:bg-white/5 px-4 py-2 rounded-lg"
+             >
+                Terminate Session
+             </button>
           </div>
         </header>
 
         {/* Dynamic Viewport */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
-          {activeTab === 'risk' && (
-            <div className="max-w-7xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">
-                {scores.map((p) => (
-                  <ProtocolCard key={p.id} protocol={p} onClick={() => openProtocol(p)} />
-                ))}
-                {scores.length === 0 && (
-                  <div className="col-span-full py-20 text-center card bg-surface/20 border-dashed border-border flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-2 border-border border-t-accent rounded-full animate-spin"></div>
-                    <p className="text-secondary font-mono text-sm uppercase tracking-widest">Awaiting Pulse Cycle...</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar relative">
+          <AnimatePresence mode="wait">
+            {activeTab === 'risk' && (
+              <motion.div 
+                key="risk"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="max-w-7xl mx-auto"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {scores.map((p) => (
+                    <ProtocolCard key={p.id} protocol={p} onClick={() => openProtocol(p)} />
+                  ))}
+                  {scores.length === 0 && <EmptyState label="Awaiting Market Pulse..." />}
+                </div>
+              </motion.div>
+            )}
 
-          {activeTab === 'feed' && (
-            <div className="max-w-3xl mx-auto animate-slide-up">
-              <div className="flex flex-col gap-4">
+            {activeTab === 'feed' && (
+              <motion.div 
+                key="feed"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="max-w-4xl mx-auto space-y-4"
+              >
                 {events.map((e) => (
                   <FeedItem key={e.id} event={e} />
                 ))}
-                {events.length === 0 && (
-                  <div className="text-center py-20 text-muted font-mono text-sm tracking-widest uppercase italic">
-                    Silent wires. Monitoring for event spikes...
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+                {events.length === 0 && <EmptyState label="Silent Wires. No Events Detected." />}
+              </motion.div>
+            )}
 
-          {activeTab === 'detail' && selectedProtocol && (
-            <div className="max-w-7xl mx-auto animate-fade-in space-y-8">
-              {/* Back Button */}
-              <button 
-                onClick={() => setActiveTab('risk')}
-                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary hover:text-accent transition-colors"
+            {activeTab === 'detail' && selectedProtocol && (
+              <motion.div 
+                key="detail"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.02 }}
+                className="max-w-7xl mx-auto space-y-10"
               >
-                ← Back to Risk Map
-              </button>
+                {/* Back Button */}
+                <button 
+                  onClick={() => setActiveTab('risk')}
+                  className="inline-flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-muted hover:text-cyan transition-colors group"
+                >
+                  <span className="group-hover:-translate-x-1 transition-transform">←</span> Back to Intelligence Map
+                </button>
 
-              <div className="grid lg:grid-cols-3 gap-8">
-                {/* Left: Chart & Info */}
-                <div className="lg:col-span-2 space-y-6">
-                  <div className="card h-[500px] overflow-hidden relative">
-                    <iframe 
-                      src={`https://dexscreener.com/${selectedProtocol.dexScreenerChain || 'ethereum'}/${selectedProtocol.dexScreenerPair || '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640'}?embed=1&theme=dark&trades=0&info=0`}
-                      className="w-full h-full border-none"
-                    />
-                  </div>
-                  
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="card p-6">
-                      <h4 className="text-xs font-bold uppercase tracking-widest text-muted mb-4">Signal Breakdown</h4>
-                      <div className="space-y-4">
-                        {Object.entries(selectedProtocol.signals).map(([key, signal]) => (
-                          <div key={key} className="space-y-1">
-                            <div className="flex justify-between text-[10px] font-bold uppercase tracking-tighter">
-                              <span className="text-secondary">{key.replace('_', ' ')}</span>
-                              <span>{signal.pts} / {signal.max}</span>
-                            </div>
-                            <div className="h-1 bg-border rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full transition-all duration-1000 ${signal.pts / signal.max > 0.6 ? 'bg-red' : (signal.pts / signal.max > 0.3 ? 'bg-orange' : 'bg-green')}`}
-                                style={{ width: `${(signal.pts / signal.max) * 100}%` }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                <div className="grid lg:grid-cols-3 gap-10">
+                  {/* Left: Chart & Info */}
+                  <div className="lg:col-span-2 space-y-8">
+                    <div className="glass-premium h-[600px] rounded-[2rem] overflow-hidden border-white/5 shadow-2xl relative">
+                      <iframe 
+                        src={`https://dexscreener.com/${selectedProtocol.dexScreenerChain || 'ethereum'}/${selectedProtocol.dexScreenerPair || '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640'}?embed=1&theme=dark&trades=0&info=0`}
+                        className="w-full h-full border-none grayscale-[0.3] hover:grayscale-0 transition-all duration-700"
+                      />
                     </div>
-                    <div className="card p-6 flex flex-col justify-center items-center text-center">
-                       <h4 className="text-xs font-bold uppercase tracking-widest text-muted mb-4">Current Contagion Score</h4>
-                       <div className={`text-7xl font-mono font-black mb-2 ${selectedProtocol.score > 70 ? 'text-red' : (selectedProtocol.score > 45 ? 'text-orange' : (selectedProtocol.score > 20 ? 'text-yellow' : 'text-green'))}`}>
-                         {selectedProtocol.score}
-                       </div>
-                       <div className={`badge ${selectedProtocol.alert_level === 'RED' ? 'bg-red/10 text-red border-red/20' : (selectedProtocol.alert_level === 'ORANGE' ? 'bg-orange/10 text-orange border-orange/20' : (selectedProtocol.alert_level === 'YELLOW' ? 'bg-yellow/10 text-yellow border-yellow/20' : 'bg-green/10 text-green border-green/20'))}`}>
-                         {selectedProtocol.alert_level} RISK
-                       </div>
-
-                       {selectedProtocol.market_trends && (
-                         <div className="mt-8 pt-8 border-t border-border w-full grid grid-cols-2 gap-4">
-                           <div className="text-left">
-                             <div className="text-[10px] font-bold text-muted uppercase tracking-widest">24H Volume</div>
-                             <div className="font-mono text-sm tracking-tighter text-secondary">${(selectedProtocol.market_trends.volume24h / 1000000).toFixed(1)}M</div>
-                           </div>
-                           <div className="text-left">
-                             <div className="text-[10px] font-bold text-muted uppercase tracking-widest">Liquidity</div>
-                             <div className="font-mono text-sm tracking-tighter text-secondary">${(selectedProtocol.market_trends.liquidityUsd / 1000000).toFixed(1)}M</div>
-                           </div>
-                         </div>
-                       )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right: Live Intel for this Protocol */}
-                <div className="space-y-6">
-                   <div className="card p-6 min-h-[400px]">
-                      <h4 className="text-xs font-bold uppercase tracking-widest text-muted mb-6">Recent Activity Intel</h4>
-                      <div className="space-y-6">
-                        {events.filter(e => e.protocol_name === selectedProtocol.name).map(e => (
-                           <div key={e.id} className="border-l-2 border-border pl-4 space-y-1">
-                              <div className="flex items-center gap-2">
-                                 <span className="font-mono text-[10px] text-muted">{e.time_ago}</span>
-                                 <span className={`text-[8px] px-1 rounded font-bold uppercase border border-${e.badge_color} text-${e.badge_color}`}>{e.event_type}</span>
+                    
+                    <div className="grid md:grid-cols-2 gap-8">
+                      <div className="glass-premium p-8 rounded-[2rem] border-white/5">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-muted mb-8">Signal Matrix Breakdown</h4>
+                        <div className="space-y-6">
+                          {Object.entries(selectedProtocol.signals).map(([key, signal]) => (
+                            <div key={key} className="space-y-2">
+                              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                                <span className="text-secondary">{key.replace('_', ' ')}</span>
+                                <span className={signal.pts / signal.max > 0.6 ? 'text-red' : 'text-cyan'}>{signal.pts} / {signal.max}</span>
                               </div>
-                              <p className="text-xs font-bold">{e.title}</p>
-                              <p className="text-[10px] text-secondary">{e.description}</p>
-                           </div>
-                        ))}
-                        {events.filter(e => e.protocol_name === selectedProtocol.name).length === 0 && (
-                          <div className="text-center py-20 text-[10px] text-muted uppercase tracking-widest">No protocol-specific events</div>
-                        )}
+                              <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${(signal.pts / signal.max) * 100}%` }}
+                                  transition={{ duration: 1, ease: "easeOut" }}
+                                  className={`h-full transition-all duration-1000 ${signal.pts / signal.max > 0.6 ? 'bg-red shadow-[0_0_10px_rgba(255,59,92,0.5)]' : (signal.pts / signal.max > 0.3 ? 'bg-orange shadow-[0_0_10px_rgba(255,122,47,0.5)]' : 'bg-cyan shadow-[0_0_10px_var(--cyan)]')}`}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                   </div>
+
+                      <div className="glass-premium p-8 rounded-[2rem] border-white/5 flex flex-col justify-center items-center text-center relative overflow-hidden">
+                         <div className="absolute inset-0 bg-cyan/5 hero-beam opacity-20"></div>
+                         <h4 className="text-[10px] font-black uppercase tracking-widest text-muted mb-6 relative z-10">Real-time Contagion</h4>
+                         <div className={`text-9xl font-black mb-4 relative z-10 tracking-tighter ${selectedProtocol.score > 70 ? 'text-red glow-red' : (selectedProtocol.score > 45 ? 'text-orange' : 'text-cyan glow-text')}`}>
+                           {selectedProtocol.score}
+                         </div>
+                         <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border relative z-10 ${selectedProtocol.alert_level === 'RED' ? 'bg-red/10 text-red border-red/20' : 'bg-cyan/10 text-cyan border-cyan/20'}`}>
+                           {selectedProtocol.alert_level} RISK ESCALATION
+                         </div>
+
+                         {selectedProtocol.market_trends && (
+                           <div className="mt-10 pt-10 border-t border-white/5 w-full grid grid-cols-2 gap-6 relative z-10">
+                             <div className="text-left">
+                               <div className="text-[9px] font-black text-muted uppercase tracking-widest mb-1">24H Volume</div>
+                               <div className="text-lg font-black text-secondary tracking-tight">${(selectedProtocol.market_trends.volume24h / 1000000).toFixed(1)}M</div>
+                             </div>
+                             <div className="text-left">
+                               <div className="text-[9px] font-black text-muted uppercase tracking-widest mb-1">Liquidity</div>
+                               <div className="text-lg font-black text-secondary tracking-tight">${(selectedProtocol.market_trends.liquidityUsd / 1000000).toFixed(1)}M</div>
+                             </div>
+                           </div>
+                         )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Live Intel for this Protocol */}
+                  <div className="space-y-8">
+                     <div className="glass-premium p-8 rounded-[2rem] border-white/5 min-h-[500px]">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-muted mb-10">Sentinel Logs</h4>
+                        <div className="space-y-8 relative">
+                          <div className="absolute left-0 top-0 bottom-0 w-px bg-white/5 ml-2"></div>
+                          {events.filter(e => e.protocol_name === selectedProtocol.name).map(e => (
+                             <div key={e.id} className="pl-8 relative">
+                                <div className="absolute left-0 top-1 w-4 h-4 rounded-full bg-base border-2 border-white/10 group-hover:border-cyan transition-colors ml-0.5 z-10"></div>
+                                <div className="flex items-center gap-3 mb-2">
+                                   <span className="font-mono text-[9px] text-muted">{e.time_ago}</span>
+                                   <span className={`text-[8px] px-2 py-0.5 rounded font-black uppercase border glass ${e.badge_color === 'red' ? 'text-red border-red/20' : 'text-cyan border-cyan/20'}`}>{e.event_type}</span>
+                                </div>
+                                <p className="text-sm font-black tracking-tight mb-1">{e.title}</p>
+                                <p className="text-xs text-secondary leading-relaxed">{e.description}</p>
+                             </div>
+                          ))}
+                          {events.filter(e => e.protocol_name === selectedProtocol.name).length === 0 && (
+                            <div className="text-center py-20 text-[10px] text-muted uppercase tracking-[0.3em] italic leading-loose">No protocol-specific events recorded in this cycle.</div>
+                          )}
+                        </div>
+                     </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </main>
     </div>
   );
 }
 
+function SidebarLink({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) {
+  return (
+    <button 
+      onClick={onClick} 
+      className={`flex flex-col items-center gap-2 group transition-all relative ${active ? 'text-cyan' : 'text-muted hover:text-secondary'}`}
+    >
+      <div className={`p-4 rounded-2xl transition-all duration-500 ${active ? 'bg-cyan/10 ring-1 ring-cyan/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]' : 'hover:bg-white/5'}`}>
+        {icon}
+      </div>
+      <span className="text-[8px] font-black tracking-[0.2em] transition-all opacity-0 group-hover:opacity-100">{label}</span>
+      {active && <motion.div layoutId="activeNav" className="absolute -right-[49px] w-1 h-8 bg-cyan rounded-l-full shadow-[0_0_10px_var(--cyan)]" />}
+    </button>
+  );
+}
+
 function ProtocolCard({ protocol, onClick }: { protocol: ProtocolScore, onClick: () => void }) {
   const getSeverity = (score: number) => {
-    if (score > 70) return { color: 'text-red', bg: 'bg-red/10', border: 'border-red/20', badge: 'DANGER', pulse: true };
-    if (score > 45) return { color: 'text-orange', bg: 'bg-orange/10', border: 'border-orange/20', badge: 'WARNING', pulse: false };
-    if (score > 20) return { color: 'text-yellow', bg: 'bg-yellow/10', border: 'border-yellow/20', badge: 'MONITOR', pulse: false };
-    return { color: 'text-green', bg: 'bg-green/10', border: 'border-green/20', badge: 'SAFE', pulse: false };
+    if (score > 70) return { color: 'text-red', glow: 'glow-red', bg: 'bg-red/10', border: 'border-red/20', badge: 'DANGER', pulse: true };
+    if (score > 45) return { color: 'text-orange', glow: '', bg: 'bg-orange/10', border: 'border-orange/20', badge: 'WARNING', pulse: false };
+    return { color: 'text-cyan', glow: 'glow-blue', bg: 'bg-cyan/10', border: 'border-cyan/20', badge: 'SECURE', pulse: false };
   };
 
   const sev = getSeverity(protocol.score);
 
   return (
-    <div onClick={onClick} className="card p-6 flex flex-col h-full cursor-pointer hover:scale-[1.01] active:scale-[0.99] group overflow-hidden relative">
-      <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-         <span className="text-7xl font-black italic">{protocol.chain.toUpperCase()}</span>
+    <motion.div 
+      whileHover={{ y: -8, transition: { duration: 0.3 } }}
+      onClick={onClick} 
+      className="glass-premium p-8 flex flex-col h-[320px] cursor-pointer group border-white/5 relative overflow-hidden rounded-[2.5rem]"
+    >
+      <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 transition-all duration-700">
+         <span className="text-8xl font-black italic">{protocol.chain.toUpperCase()}</span>
       </div>
 
       <div className="flex justify-between items-start mb-8 relative z-10">
         <div>
-          <h3 className="text-xl font-extrabold italic uppercase tracking-tighter mb-1 leading-none">{protocol.name}</h3>
-          <span className="text-[10px] font-mono font-bold tracking-widest text-muted">{protocol.chain.toUpperCase()}</span>
+          <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-1 leading-none group-hover:text-cyan transition-colors">{protocol.name}</h3>
+          <span className="text-[10px] font-bold tracking-[0.2em] text-muted">{protocol.chain.toUpperCase()} NETWORK sentinel</span>
         </div>
-        <div className={`badge ${sev.bg} ${sev.color} ${sev.border} ${sev.pulse ? 'animate-pulse' : ''}`}>
+        <div className={`px-3 py-1 rounded text-[9px] font-black tracking-widest border ${sev.bg} ${sev.color} ${sev.border} ${sev.pulse ? 'animate-pulse' : ''}`}>
           {sev.badge}
         </div>
       </div>
 
       <div className="flex items-end justify-between mt-auto relative z-10">
-        <div className="space-y-2">
-          <div className="text-xs font-bold text-secondary tracking-widest uppercase">Contagion Score</div>
-          <div className={`text-6xl font-mono font-black ${sev.color} leading-none tracking-tighter`}>
+        <div className="space-y-1">
+          <div className="text-[10px] font-black text-muted tracking-widest uppercase">Risk Score</div>
+          <div className={`text-7xl font-black tracking-tighter leading-none ${sev.color} ${sev.glow}`}>
             {protocol.score}
           </div>
         </div>
@@ -233,63 +285,101 @@ function ProtocolCard({ protocol, onClick }: { protocol: ProtocolScore, onClick:
         <div className="text-right space-y-1">
           {protocol.market_trends ? (
             <>
-              <div className="text-[10px] font-bold text-muted uppercase tracking-widest">24H VOL</div>
-              <div className="font-mono text-sm text-secondary">${(protocol.market_trends.volume24h / 1000000).toFixed(1)}M</div>
-              <div className="text-[10px] font-bold text-muted uppercase tracking-widest mt-2">LIQUIDITY</div>
-              <div className="font-mono text-sm">${(protocol.market_trends.liquidityUsd / 1000000).toFixed(1)}M</div>
+              <div className="text-[9px] font-black text-muted uppercase tracking-widest">24H VOL</div>
+              <div className="text-sm font-black text-secondary">{protocol.market_trends.volume24h > 1000000 ? `${(protocol.market_trends.volume24h / 1000000).toFixed(1)}M` : (protocol.market_trends.volume24h / 1000).toFixed(1) + 'K'}</div>
+              <div className="text-[9px] font-black text-muted uppercase tracking-widest pt-2">LIQUIDITY</div>
+              <div className="text-sm font-black text-secondary">${(protocol.market_trends.liquidityUsd / 1000000).toFixed(1)}M</div>
             </>
           ) : (
             <>
-              <div className="text-[10px] font-bold text-muted uppercase tracking-widest">Live TVL</div>
-              <div className="font-mono text-sm">{protocol.tvl_formatted}</div>
+              <div className="text-[9px] font-black text-muted uppercase tracking-widest">Live TVL</div>
+              <div className="text-sm font-black text-secondary">{protocol.tvl_formatted}</div>
             </>
           )}
-          <div className={`text-[10px] font-bold ${protocol.price_change_1h >= 0 ? 'text-green' : 'text-red'}`}>
-            {protocol.price_change_1h >= 0 ? '+' : ''}{protocol.price_change_1h}%
-          </div>
         </div>
       </div>
 
       {/* Simplified Sparkline */}
-      <div className="h-12 w-full mt-6 -mx-6 -mb-6 opacity-30 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all">
+      <div className="absolute bottom-0 left-0 right-0 h-16 opacity-10 group-hover:opacity-30 p-2 pointer-events-none transition-all duration-700">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={(protocol.tvl_history || [40, 45, 42, 48, 46, 50, 49]).map((v, i) => ({ v, i }))}>
-            <Line type="monotone" dataKey="v" stroke={sev.color.replace('text-', '#')} strokeWidth={2} dot={false} />
-            <YAxis hide domain={['dataMin - 1', 'dataMax + 1']} />
+            <Line type="monotone" dataKey="v" stroke={sev.color.includes('cyan') ? '#06B6D4' : '#FF3B5C'} strokeWidth={3} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </div>
+
+      {/* Scanning Line Animation on Card */}
+      <div className="absolute inset-0 scanner-line opacity-0 group-hover:opacity-10 transition-opacity"></div>
+    </motion.div>
   );
 }
 
 function FeedItem({ event }: { event: SignalEvent }) {
-  const getBadgeColor = (color: string) => {
-    switch (color) {
-      case 'red': return 'bg-red/10 text-red border-red/20';
-      case 'orange': return 'bg-orange/10 text-orange border-orange/20';
-      case 'yellow': return 'bg-yellow/10 text-yellow border-yellow/20';
-      default: return 'bg-green/10 text-green border-green/20';
-    }
-  };
-
   return (
-    <div className="card p-4 hover:bg-elevated flex items-start gap-4 animate-slide-up">
-      <div className="pt-1 font-mono text-[10px] text-muted shrink-0 w-16">{event.time_ago}</div>
-      <div className="flex-1 space-y-1">
-        <div className="flex items-center gap-3">
-          <span className={`badge ${getBadgeColor(event.badge_color)}`}>{event.event_type.replace('_', ' ')}</span>
-          <span className="text-xs font-extrabold uppercase italic tracking-tighter">{event.protocol_name}</span>
+    <motion.div 
+      initial={{ opacity: 0, x: -10 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      className="glass-premium p-6 hover:bg-white/5 flex items-start gap-6 rounded-2xl border-white/5 group transition-all"
+    >
+      <div className="pt-1 font-mono text-[9px] text-muted shrink-0 w-20 tracking-tighter">{event.time_ago}</div>
+      <div className="flex-1 space-y-2">
+        <div className="flex items-center gap-4">
+          <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border glass ${event.badge_color === 'red' ? 'text-red border-red/20' : 'text-cyan border-cyan/20'}`}>
+            {event.event_type.replace('_', ' ')}
+          </span>
+          <span className="text-xs font-black uppercase italic tracking-tighter text-secondary group-hover:text-white transition-colors">{event.protocol_name} intelligence</span>
         </div>
-        <p className="text-sm font-bold text-primary">{event.title}</p>
-        <p className="text-xs text-secondary leading-relaxed">{event.description}</p>
+        <p className="text-base font-black tracking-tight text-white/90">{event.title}</p>
+        <p className="text-sm text-secondary font-medium leading-relaxed">{event.description}</p>
         {event.wallet && (
-          <div className="flex items-center gap-2 pt-1 font-mono text-[10px] text-muted">
-             <span className="uppercase tracking-tighter">Addr:</span>
-             <span className="hover:text-accent cursor-pointer transition-colors transition-all break-all">{event.wallet_full}</span>
+          <div className="flex items-center gap-3 pt-2 font-mono text-[9px] text-muted">
+             <span className="uppercase font-black text-cyan/50 tracking-widest">Source:</span>
+             <span className="hover:text-cyan cursor-pointer transition-all break-all">{event.wallet_full}</span>
           </div>
         )}
       </div>
+    </motion.div>
+  );
+}
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="col-span-full py-40 text-center glass-premium border-dashed border-white/5 rounded-[3rem] flex flex-col items-center gap-8">
+      <div className="relative">
+        <div className="w-16 h-16 border-2 border-white/5 border-t-cyan rounded-full animate-spin"></div>
+        <div className="absolute inset-0 flex items-center justify-center text-xs">🌐</div>
+      </div>
+      <p className="text-secondary font-black text-xs uppercase tracking-[0.5em]">{label}</p>
     </div>
   );
 }
+
+function RiskIcon() {
+  return <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>;
+}
+
+function FeedIcon() {
+  return <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>;
+}
+
+function HeroFeature({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+  return (
+    <div className="p-10 hover:bg-cyan/5 transition-colors group">
+      <div className="text-3xl mb-4 group-hover:scale-110 transition-transform flex items-center gap-3">
+        {icon}
+        <h3 className="text-lg font-black tracking-tight">{title}</h3>
+      </div>
+      <p className="text-secondary text-sm leading-relaxed">{desc}</p>
+    </div>
+  );
+}
+
+function MarketStat({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div className="flex items-center gap-4 group cursor-default">
+      <span className="text-muted font-black text-xs tracking-widest">{label}</span>
+      <span className={`text-xl font-black text-white glow-text group-hover:text-cyan transition-colors`}>{value}</span>
+    </div>
+  );
+}
+
