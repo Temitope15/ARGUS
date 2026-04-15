@@ -16,7 +16,7 @@ export type ProtocolScore = {
   price_change_1h: number;
   market_trends?: {
     volume24h: number;
-    liquidity: number;
+    liquidityUsd: number;
     priceChange24h: number;
   };
   signals: Record<string, { pts: number, max: number, detail?: string }>;
