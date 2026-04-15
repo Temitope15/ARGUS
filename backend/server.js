@@ -216,21 +216,30 @@ async function bootstrap() {
     const runUnifiedPollCycle = async () => {
       const cycleScores = await runPollCycle();
       if (cycleScores && cycleScores.length > 0) {
-        latestScores = cycleScores.map(s => ({
-            ...s,
-            id: s.protocolId,
-            name: s.protocolName,
-            alert_level: s.alertLevel,
-            tvl_formatted: `\$${Math.round((s.tvlUsd || 0) / 1000000)}M`,
-            price_change_1h: s.priceChange1h || 0,
-            signals: {
+        latestScores = cycleScores.map(s => {
+            const pConfig = MONITORED_PROTOCOLS.find(p => p.id === s.protocolId);
+            return {
+                ...s,
+                id: s.protocolId,
+                name: s.protocolName,
+                dexScreenerPair: pConfig?.dexScreenerPair,
+                dexScreenerChain: pConfig?.dexScreenerChain,
+                alert_level: s.alertLevel,
+                tvl_usd: marketTrends[pConfig?.dexScreenerPair?.toLowerCase()]?.liquidityUsd || (s.tvlUsd || 0),
+                tvl_formatted: marketTrends[pConfig?.dexScreenerPair?.toLowerCase()]?.liquidityUsd 
+                    ? `\$${Math.round(marketTrends[pConfig?.dexScreenerPair?.toLowerCase()].liquidityUsd / 1000000)}M` 
+                    : `\$${Math.round((s.tvlUsd || 0) / 1000000)}M`,
+                price_change_1h: marketTrends[pConfig?.dexScreenerPair?.toLowerCase()]?.priceChange24h || s.priceChange1h || 0,
+                market_trends: marketTrends[pConfig?.dexScreenerPair?.toLowerCase()] || null,
+                signals: {
                 tvl_velocity: { pts: s.signals.tvlVelocityPts, max: 25 },
                 lp_drain: { pts: s.signals.lpDrainRatePts, max: 25 },
                 depeg: { pts: s.signals.stablecoinDepegPts, max: 20 },
                 smart_money: { pts: s.signals.smartMoneyExitPts, max: 20 },
                 ave_risk: { pts: s.signals.aveRiskScorePts, max: 10 }
             }
-        }));
+          };
+        });
         io.emit('scores_update', { protocols: latestScores, timestamp: Date.now() });
         const stats = await db.getStats();
         io.emit('stats_update', {
