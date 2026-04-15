@@ -76,6 +76,8 @@ async function bootstrap() {
             id: p.id,
             name: p.name,
             chain: p.chain,
+            dexScreenerPair: p.dexScreenerPair,
+            dexScreenerChain: p.dexScreenerChain,
             score: s ? s.score : 0,
             alert_level: s ? s.alert_level : 'GREEN',
             tvl_usd: trend.liquidityUsd || (s ? s.tvlUsd : 0), 

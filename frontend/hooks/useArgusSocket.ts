@@ -7,6 +7,8 @@ export type ProtocolScore = {
   id: string;
   name: string;
   chain: string;
+  dexScreenerPair?: string;
+  dexScreenerChain?: string;
   score: number;
   alert_level: 'GREEN' | 'YELLOW' | 'ORANGE' | 'RED';
   tvl_usd: number;

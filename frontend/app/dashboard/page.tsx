@@ -112,7 +112,7 @@ export default function Dashboard() {
                 <div className="lg:col-span-2 space-y-6">
                   <div className="card h-[500px] overflow-hidden relative">
                     <iframe 
-                      src={`https://dexscreener.com/${selectedProtocol.chain === 'eth' ? 'ethereum' : (selectedProtocol.chain === 'solana' ? 'solana' : (selectedProtocol.chain === 'bsc' ? 'bsc' : 'ethereum'))}/${selectedProtocol.id.includes('curve') ? '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7' : '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640'}?embed=1&theme=dark&trades=0&info=0`}
+                      src={`https://dexscreener.com/${selectedProtocol.dexScreenerChain || 'ethereum'}/${selectedProtocol.dexScreenerPair || '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640'}?embed=1&theme=dark&trades=0&info=0`}
                       className="w-full h-full border-none"
                     />
                   </div>
