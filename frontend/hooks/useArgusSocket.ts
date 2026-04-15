@@ -34,6 +34,14 @@ export type SignalEvent = {
 
 let globalSocket: Socket | null = null;
 
+// Ensure URL is absolute to avoid hitting Vercel domain for API calls
+const getBackendUrl = () => {
+    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (envUrl && envUrl.startsWith('http')) return envUrl;
+    // Hardcoded fallback if env is missing or invalid
+    return 'https://argus-backend-tkgz.onrender.com';
+};
+
 export function useArgusSocket() {
   const [scores, setScores] = useState<ProtocolScore[]>([]);
   const [events, setEvents] = useState<SignalEvent[]>([]);
@@ -42,19 +50,25 @@ export function useArgusSocket() {
   const isInitialized = useRef<boolean>(false);
 
   useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_API_URL || 'https://argus-backend-tkgz.onrender.com';
+    const url = getBackendUrl();
 
     if (!isInitialized.current) {
         // Initial fetch
         fetch(`${url}/api/protocols/scores`)
-          .then(res => res.json())
+          .then(res => {
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              return res.json();
+          })
           .then(data => {
             if (data && data.protocols) setScores(data.protocols);
           })
           .catch(err => console.error('Initial scores fetch failed:', err));
         
         fetch(`${url}/api/stats`)
-          .then(res => res.json())
+          .then(res => {
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              return res.json();
+          })
           .then(data => setStats(data))
           .catch(err => console.error('Initial stats fetch failed:', err));
           
