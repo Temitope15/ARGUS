@@ -9,7 +9,8 @@ const logger = createLogger('phase1-client');
 
 class Phase1Client {
   constructor() {
-    this.baseUrl = process.env.PHASE1_API_URL || 'http://localhost:3001';
+    const port = process.env.PORT || '3001';
+    this.baseUrl = process.env.PHASE1_API_URL || `http://localhost:${port}`;
     this.instance = axios.create({
       baseURL: this.baseUrl,
       timeout: 8000
