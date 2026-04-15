@@ -4,6 +4,19 @@ import { MONITORED_PROTOCOLS } from '../config/protocols.js';
 
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
 
+// Handle polling errors (like 409 Conflict during Render deployments)
+let lastErrorCode = null;
+bot.on('polling_error', (error) => {
+  if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
+    if (lastErrorCode !== 409) {
+      console.log('📡 Telegram Bot: 409 Conflict detected (usually secondary instance during deployment). Intelligence polling continues...');
+      lastErrorCode = 409;
+    }
+  } else {
+    console.error('📡 Telegram Polling Error:', error.message);
+  }
+});
+
 // Helper to get protocol list text
 async function getProtocolListText() {
   return MONITORED_PROTOCOLS.map(p => `• ${p.name} (${p.chain.toUpperCase()})`).join('\n');

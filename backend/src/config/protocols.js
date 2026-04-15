@@ -10,7 +10,7 @@ export const MONITORED_PROTOCOLS = [
     chain: 'eth',
     tokenId: '0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490-eth',  // 3CRV token
     pairId:  '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7-eth',  // Curve 3Pool pair
-    dexScreenerPair: '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7',
+    dexScreenerPair: '0xdc24316b9ae028f1497c275eb9192a3ea0f67022',
     dexScreenerChain: 'ethereum',
     stablecoinTokenIds: ["0x6b175474e89094c44da98b954eedeac495271d0f-eth", "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48-eth"]
   },
