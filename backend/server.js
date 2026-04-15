@@ -20,6 +20,7 @@ import pollManager from './contagion-shield/src/poller/pollManager.js';
 import pairDiscoveryPoller from './contagion-shield/src/poller/pairDiscoveryPoller.js';
 import tvlPoller from './contagion-shield/src/poller/tvlPoller.js';
 import signalRoutes from './contagion-shield/src/api/routes/signals.js'; 
+import dexScreenerClient from './src/api/dexScreenerClient.js';
 import { createLogger as createP1Logger } from './contagion-shield/src/utils/logger.js';
 
 // Phase 2/3 imports
@@ -69,15 +70,22 @@ async function bootstrap() {
         const scores = await db.getAllLatestScores();
         const formatted = MONITORED_PROTOCOLS.map(p => {
           const s = scores.find(score => score.protocol_id === p.id);
+          const trend = marketTrends[p.dexScreenerPair?.toLowerCase()] || {};
+          
           return {
             id: p.id,
             name: p.name,
             chain: p.chain,
             score: s ? s.score : 0,
             alert_level: s ? s.alert_level : 'GREEN',
-            tvl_usd: 0, 
-            tvl_formatted: '$--M',
-            price_change_1h: 0,
+            tvl_usd: trend.liquidityUsd || (s ? s.tvlUsd : 0), 
+            tvl_formatted: trend.liquidityUsd ? `\$${Math.round(trend.liquidityUsd / 1000000)}M` : '$--M',
+            price_change_1h: trend.priceChange24h || 0, // Using 24h as stable proxy
+            market_trends: {
+              volume24h: trend.volume24h || 0,
+              liquidity: trend.liquidityUsd || 0,
+              priceChange24h: trend.priceChange24h || 0
+            },
             signals: s ? {
               tvl_velocity: { pts: s.signal_tvl_pts, max: 25 },
               lp_drain: { pts: s.signal_lp_pts, max: 25 },
@@ -161,6 +169,17 @@ async function bootstrap() {
     initEcosystemReport();
 
     let latestScores = [];
+    let marketTrends = {};
+
+    const fetchTrends = async () => {
+      try {
+        const trends = await dexScreenerClient.fetchAllTrends(MONITORED_PROTOCOLS);
+        marketTrends = trends;
+        logger.info({ pairs: Object.keys(trends).length }, 'Market trends updated from DexScreener');
+      } catch (err) {
+        logger.error({ error: err.message }, 'Failed to update market trends');
+      }
+    };
 
     io.on('connection', (socket) => {
       if (latestScores.length > 0) {
@@ -226,6 +245,10 @@ async function bootstrap() {
     }, 2000);
     
     setInterval(runUnifiedPollCycle, 60 * 1000);
+
+    // Initial and periodic trend fetch (every 5 mins)
+    fetchTrends();
+    setInterval(fetchTrends, 5 * 60 * 1000);
 
     httpServer.listen(PORT, '0.0.0.0', () => {
       logger.info(`🛡️  ARGUS Unified Server: http://0.0.0.0:${PORT}`);

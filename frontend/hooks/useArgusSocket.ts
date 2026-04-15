@@ -12,6 +12,11 @@ export type ProtocolScore = {
   tvl_usd: number;
   tvl_formatted: string;
   price_change_1h: number;
+  market_trends?: {
+    volume24h: number;
+    liquidity: number;
+    priceChange24h: number;
+  };
   signals: Record<string, { pts: number, max: number, detail?: string }>;
   last_event?: string;
   tvl_history?: number[];

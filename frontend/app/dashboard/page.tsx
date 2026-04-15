@@ -145,6 +145,19 @@ export default function Dashboard() {
                        <div className={`badge ${selectedProtocol.alert_level === 'RED' ? 'bg-red/10 text-red border-red/20' : (selectedProtocol.alert_level === 'ORANGE' ? 'bg-orange/10 text-orange border-orange/20' : (selectedProtocol.alert_level === 'YELLOW' ? 'bg-yellow/10 text-yellow border-yellow/20' : 'bg-green/10 text-green border-green/20'))}`}>
                          {selectedProtocol.alert_level} RISK
                        </div>
+
+                       {selectedProtocol.market_trends && (
+                         <div className="mt-8 pt-8 border-t border-border w-full grid grid-cols-2 gap-4">
+                           <div className="text-left">
+                             <div className="text-[10px] font-bold text-muted uppercase tracking-widest">24H Volume</div>
+                             <div className="font-mono text-sm tracking-tighter text-secondary">${(selectedProtocol.market_trends.volume24h / 1000000).toFixed(1)}M</div>
+                           </div>
+                           <div className="text-left">
+                             <div className="text-[10px] font-bold text-muted uppercase tracking-widest">Liquidity</div>
+                             <div className="font-mono text-sm tracking-tighter text-secondary">${(selectedProtocol.market_trends.liquidity / 1000000).toFixed(1)}M</div>
+                           </div>
+                         </div>
+                       )}
                     </div>
                   </div>
                 </div>
@@ -214,8 +227,19 @@ function ProtocolCard({ protocol, onClick }: { protocol: ProtocolScore, onClick:
         </div>
         
         <div className="text-right space-y-1">
-          <div className="text-[10px] font-bold text-muted uppercase tracking-widest">Live TVL</div>
-          <div className="font-mono text-sm">{protocol.tvl_formatted}</div>
+          {protocol.market_trends ? (
+            <>
+              <div className="text-[10px] font-bold text-muted uppercase tracking-widest">24H VOL</div>
+              <div className="font-mono text-sm text-secondary">${(protocol.market_trends.volume24h / 1000000).toFixed(1)}M</div>
+              <div className="text-[10px] font-bold text-muted uppercase tracking-widest mt-2">LIQUIDITY</div>
+              <div className="font-mono text-sm">{protocol.tvl_formatted}</div>
+            </>
+          ) : (
+            <>
+              <div className="text-[10px] font-bold text-muted uppercase tracking-widest">Live TVL</div>
+              <div className="font-mono text-sm">{protocol.tvl_formatted}</div>
+            </>
+          )}
           <div className={`text-[10px] font-bold ${protocol.price_change_1h >= 0 ? 'text-green' : 'text-red'}`}>
             {protocol.price_change_1h >= 0 ? '+' : ''}{protocol.price_change_1h}%
           </div>
